@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marktplaats Hunt Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,750&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f3ee;--card:#ffffff;--ink:#1b211e;--muted:#646e69;--line:#dcdfd8;--chip:#e9ebe5;
+  --accent:#1f6f5c;--accent-ink:#ffffff;--accent-soft:#dff0e9;
+  --new:#c8930f;--new-soft:#fbf0cf;--warn:#a8551b;--warn-soft:#f9e8da;--bad:#b3261e;--bad-soft:#fbe2df;
+  --ship:#2c5f9e;--ship-soft:#e3ecf8;--band:#cfe6dd;--road:#b9beb6;
+  --display:"Bricolage Grotesque","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--bg:#131715;--card:#1c211f;--ink:#e7ebe8;--muted:#9ba59f;--line:#2e3531;--chip:#262c29;
+  --accent:#5cc3a4;--accent-ink:#0f1a16;--accent-soft:#1b322b;--new:#f0c24a;--new-soft:#3a3117;--warn:#e39a5f;--warn-soft:#3a2a1d;
+  --bad:#f08a82;--bad-soft:#3b2120;--ship:#8db4e8;--ship-soft:#1d2a3a;--band:#24433a;--road:#4a524d}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--bg:#131715;--card:#1c211f;--ink:#e7ebe8;--muted:#9ba59f;--line:#2e3531;--chip:#262c29;
+  --accent:#5cc3a4;--accent-ink:#0f1a16;--accent-soft:#1b322b;--new:#f0c24a;--new-soft:#3a3117;--warn:#e39a5f;--warn-soft:#3a2a1d;
+  --bad:#f08a82;--bad-soft:#3b2120;--ship:#8db4e8;--ship-soft:#1d2a3a;--band:#24433a;--road:#4a524d}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+h1{font:750 30px/1.1 var(--display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+h2{font:600 20px/1.2 var(--display);margin:0;text-wrap:balance}
+h3{font:600 16px/1.25 var(--display);margin:0}
+.sub{color:var(--muted);font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between;margin-bottom:18px}
+.schedule{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.on{background:var(--accent)}
+.savebar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--new-soft);border:1px solid var(--new);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:14px}
+.savebar .spacer{flex:1}
+
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.tab{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:14px}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab .count{font-weight:700;font-size:12px;background:var(--new);color:#1b1b18;border-radius:999px;padding:0 7px}
+.tab .kind{font-weight:500;font-size:12px;opacity:.75}
+.tab.add{border-style:dashed;color:var(--accent);background:transparent}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:10px;padding:8px 14px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn.danger{background:transparent;border-color:var(--bad);color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.brief{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:14px}
+.brief-head{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:flex-start}
+.crit{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:13px;background:var(--chip);border-radius:8px;padding:3px 9px}
+.pill b{font-weight:600;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.wishes{font-size:14px;border-left:3px solid var(--band);padding:2px 0 2px 12px;white-space:pre-wrap;max-width:75ch}
+.runline{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.banner{border-radius:12px;padding:12px 14px;font-size:14px;background:var(--warn-soft);border:1px solid var(--line)}
+
+/* route strip */
+.routebox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 8px;margin-top:14px}
+.routebox .rhead{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;align-items:baseline}
+.routesvg{width:100%;height:auto;display:block;margin-top:6px}
+.routesvg .road{stroke:var(--road);stroke-width:6;stroke-linecap:round}
+.routesvg .band{fill:var(--accent-soft)}
+.routesvg .end{fill:var(--ink)}
+.routesvg text{fill:var(--muted);font:600 12px var(--body)}
+.routesvg text.endl{fill:var(--ink);font-size:13px}
+.routesvg .pin{cursor:pointer}
+.routesvg .pin circle{fill:var(--accent);stroke:var(--card);stroke-width:2}
+.routesvg .pin.isnew circle{fill:var(--new)}
+.routesvg .pin.off circle{fill:var(--muted)}
+.routesvg .pin.free circle{fill:var(--ship)}
+.routesvg .pin.free text{fill:#fff}
+.routesvg .pin text{fill:var(--accent-ink);font:700 9px var(--body);letter-spacing:-.02em}
+.routesvg .pin.isnew text{fill:#1b1b18}
+.routesvg .stem{stroke:var(--line);stroke-width:1.5}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:18px 0 6px}
+.stat{padding:10px 2px;border-top:2px solid var(--line)}
+.stat b{display:block;font:750 24px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px}
+.stat.hl{border-top-color:var(--new)}
+.stat.alert{border-top-color:var(--bad)}
+.stat.free{border-top-color:var(--ship)}
+.freehead{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 14px}
+.chip{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.spacer{flex:1}
+select.small{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.card.isnew{border-color:var(--new);box-shadow:0 0 0 3px var(--new-soft)}
+.card.gone{opacity:.55}
+.card.flash{box-shadow:0 0 0 3px var(--accent)}
+.photo{position:relative;aspect-ratio:4/3;max-width:100%;background:var(--chip);display:block}
+.photo img{width:100%;height:100%;object-fit:cover;display:block;visibility:hidden}
+.photo img.ok{visibility:visible}
+.ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;padding:10px}
+.photo .badges{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.photo .num-badge{position:absolute;top:10px;left:10px;background:var(--ink);color:var(--bg);font-weight:700;border-radius:8px;padding:2px 8px;font-size:13px;z-index:2}
+.badge{font-size:11.5px;font-weight:700;letter-spacing:.03em;border-radius:6px;padding:2px 8px;text-transform:uppercase}
+.badge.new{background:var(--new);color:#1b1b18}
+.badge.free{background:var(--ship);color:#fff}
+.badge.old{background:rgba(0,0,0,.62);color:#fff}
+.badge.warn{background:var(--warn);color:#fff}
+.badge.bad{background:var(--bad);color:#fff}
+.cbody{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.fit{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.fitbar{width:64px;height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.fitbar i{display:block;height:100%;background:var(--accent)}
+.card .title{font-weight:650;font-size:15.5px;line-height:1.3;color:var(--ink);text-decoration:none}
+.card .title:hover{text-decoration:underline}
+.priceRow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.price{font:750 24px/1 var(--display);font-variant-numeric:tabular-nums}
+.was{text-decoration:line-through;color:var(--muted);font-size:13px}
+.saving{font-size:13px;font-weight:600;color:var(--accent)}
+.saving.neg{color:var(--warn)}
+.range{display:grid;gap:4px}
+.track{position:relative;height:8px;border-radius:4px;background:var(--chip)}
+.track .bandr{position:absolute;top:0;bottom:0;background:var(--band);border-radius:4px}
+.track .med{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--muted)}
+.track .me{position:absolute;top:-4px;width:14px;height:16px;margin-left:-7px;border-radius:4px;background:var(--accent);border:2px solid var(--card)}
+.range small{display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted)}
+.logi{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lg{background:var(--chip);border-radius:8px;padding:6px 8px;font-size:12.5px;line-height:1.35;color:var(--muted)}
+.lg b{display:block;font-size:13.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.lg.route{background:var(--accent-soft)}
+.lg.route b{color:var(--accent)}
+.lg.ship{background:var(--ship-soft)}
+.lg.ship b{color:var(--ship)}
+.lg.na{opacity:.6}
+.why{font-size:14px}
+.unsure{font-size:13px;color:var(--warn)}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:12px;border-radius:6px;padding:2px 7px;background:var(--warn-soft);color:var(--warn)}
+.life{font-size:12.5px;color:var(--muted)}
+.life.warn{color:var(--warn);font-weight:600}.life.bad{color:var(--bad);font-weight:600}
+.card .btn{margin-top:auto}
+
+.section{margin-top:34px;display:grid;gap:12px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14px}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:26px 20px;display:grid;gap:10px;justify-items:start}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.lvl{font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px}
+.lvl.bad{background:var(--bad-soft);color:var(--bad)}.lvl.warn{background:var(--warn-soft);color:var(--warn)}
+.combo{display:grid;grid-template-columns:1fr auto 1fr auto;gap:10px 14px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.combo .part{display:grid;gap:2px;min-width:0}
+.combo .part a{font-weight:600;color:var(--ink);text-decoration:none;overflow-wrap:anywhere}
+.combo .part a:hover{text-decoration:underline}
+.combo .plus{color:var(--muted);font-weight:700}
+.combo .total{font:750 20px/1 var(--display);font-variant-numeric:tabular-nums;text-align:right}
+.combo .total small{display:block;font:500 12px var(--body);color:var(--muted);margin-top:4px}
+@media (max-width:640px){.combo{grid-template-columns:1fr}.combo .plus{display:none}.combo .total{text-align:left}}
+.links{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px}
+
+form.editor{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:22px}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:12px;min-width:0}
+legend{font:600 15px/1.2 var(--display);padding:0;margin-bottom:10px}
+legend span{font:400 13px var(--body);color:var(--muted);margin-left:6px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.field{display:grid;gap:5px;align-content:start}
+.field label,.lbl{font-size:13px;font-weight:600}
+.hint{font-size:12.5px;color:var(--muted)}
+input[type=text],input[type=number],input[type=date],select.inp,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+textarea{min-height:110px;resize:vertical;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;flex:1 1 200px}
+.seg input{margin-top:3px;accent-color:var(--accent)}
+.seg small{display:block;color:var(--muted);font-size:12.5px}
+.toggle{display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.toggle input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.toggle small{display:block;color:var(--muted);font-size:12.5px}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13.5px;cursor:pointer}
+.checks input{accent-color:var(--accent)}
+.formfoot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:16px}
+.err{color:var(--bad);font-size:13.5px}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
+.sendbox{background:var(--card);border:2px solid var(--accent);border-radius:16px;padding:18px 20px;display:grid;gap:12px;margin-bottom:18px}
+.sendbox textarea{font:12px/1.4 ui-monospace,Consolas,monospace;min-height:120px;background:var(--bg)}
+.sendbox ol{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px}
+footer{margin-top:40px;color:var(--muted);font-size:13px;max-width:80ch}
+@media (max-width:480px){.logi{grid-template-columns:1fr}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Marktplaats Hunt Board</h1>
+      <div class="sub">Set up what you're hunting for. Every day at 12:00 the scout searches all of Marktplaats on this laptop and lines up the best matches here.</div>
+    </div>
+    <div class="schedule" id="schedule"></div>
+  </header>
+  <div class="savebar" id="savebar" hidden="">
+    <span id="savemsg">You have changes that aren't saved to the file yet. The scout only sees what's saved.</span>
+    <span class="spacer"></span>
+    <button class="btn primary" id="savebtn" type="button">Save to Hunt Board.html</button>
+  </div>
+  <section class="sendbox" id="sendbox" hidden></section>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Hunts"></nav>
+  <main id="main"></main>
+  <footer>Detours and drive times are road estimates (straight line × 1.3). Own-car fuel cost uses the day's pump prices and the average of a Citroën C3 on petrol (6.0 L/100 km) and a Chevrolet Spark on LPG (7.0 L/100 km). Listings run in 28-day cycles unless the seller renews them, so "may expire" is an estimate. Edits are saved into this file itself, so keep it in the Marktplaats Scout V3 folder where the scout reads it.</footer>
+</div>
+
+<script>window.SHARE_MODE=true;window.SHARE_PHOTOS=true;</script>
+<!-- ===== BOARD: the scout rewrites only this JSON block ===== -->
+<script id="board" type="application/json">{"version":3,"updated":"2026-09-24T15:40:00Z","hunts":{"couch":{"name":"Couch","product":"Couch / sofa for the new apartment","category":"huis-en-inrichting/banken-bankstellen","keywords":"bank, bankstel, hoekbank, 3-zits bank","area":"route","street":"","postcode":"","city":"","maxKm":25,"route":{"from":"Rotterdam","to":"Amsterdam","detourKm":10,"moveDate":null,"pts":[[51.9225,4.4792],[51.935,4.39],[52.005,4.37],[52.07,4.4],[52.15,4.5],[52.25,4.64],[52.3,4.75],[52.3676,4.9041]]},"transport":"van","shippingOk":false,"priceMin":null,"priceMax":400,"yearFrom":null,"yearTo":null,"conditions":["Nieuw","Zo goed als nieuw","Gebruikt"],"wishes":"","active":true,"updatedAt":"2026-09-24T14:24:33.894Z","createdAt":"2026-09-24T14:35:00Z","order":0,"includeFree":true},"dining-table":{"name":"Dining table","product":"Dining table","category":"huis-en-inrichting/tafels-eettafels","keywords":"eettafel, eetkamertafel","area":"radius","street":"","postcode":"","city":"","maxKm":25,"route":{"from":"Rotterdam","to":"Amsterdam","detourKm":10,"moveDate":null},"transport":"car","shippingOk":true,"priceMin":null,"priceMax":400,"yearFrom":null,"yearTo":null,"conditions":["Nieuw","Zo goed als nieuw","Gebruikt"],"wishes":"","active":false,"order":1,"createdAt":"2026-09-24T14:35:00Z","updatedAt":"2026-09-24T14:30:00Z","includeFree":true},"dining-chairs":{"name":"Dining chairs","product":"Set of dining chairs","category":"huis-en-inrichting/stoelen","keywords":"eetkamerstoelen, eettafelstoelen, set stoelen","area":"radius","street":"","postcode":"","city":"","maxKm":25,"route":{"from":"Rotterdam","to":"Amsterdam","detourKm":10,"moveDate":null},"transport":"car","shippingOk":true,"priceMin":null,"priceMax":400,"yearFrom":null,"yearTo":null,"conditions":["Nieuw","Zo goed als nieuw","Gebruikt"],"wishes":"","active":false,"order":2,"createdAt":"2026-09-24T14:35:00Z","updatedAt":"2026-09-24T14:30:00Z","includeFree":true}},"results":{"couch":{"huntId":"couch","date":"2026-09-24","runAt":"2026-09-24T15:40:00Z","home":null,"fuel":{"euro95":2.703,"lpg":1.265,"date":"2026-09-23"},"stats":{"scanned":1355,"inRange":912},"market":{"label":"Private couch asking prices along the route, last 7 days","n":589,"q1":100,"med":245,"q3":500},"deals":[{"id":"m2445968654","title":"Leolux 3-zitsbank","price":"€275","priceNum":275,"city":"Warmond","lat":52.194205241723,"lon":4.4987809466784,"condition":"","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":78,"saving":325,"typical":{"q1":400,"med":600,"q3":900},"why":"A Leolux 3-seater for €275, freshly reupholstered in sturdy cognac fabric with adjustable headrests. Used Leolux 3-seaters usually ask €400–900.","unsure":"Width and depth aren't listed, and there are no attribute details. Ask for measurements.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445968654-leolux-3-zitsbank","image":"cfc13011-66aa-4fc7-aba6-542c2d9bf6de","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":1,"free":false},{"id":"m2446262119","title":"LEOLUX B FLAT ZGAN","price":"Bieden","priceNum":null,"city":"Vlaardingen","lat":51.932833775671,"lon":4.3415891543229,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"both","from":39,"protection":true},"fit":75,"saving":null,"typical":{"q1":1000,"med":1500,"q3":2200},"why":"Leolux B-Flat leather corner sofa, barely used, no smokers or pets. New it costs several thousand euros.","unsure":"Open to offers only, so the price is unknown. It is large (300+ cm wide, 150+ cm deep), so measure the room first.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2446262119-leolux-b-flat-zgan","image":"10f0f79c-932b-4331-aafe-5211af67e379","found":"2026-09-24","since":"2026-09-24","status":"active","checked":"2026-09-24","_n":2,"free":false},{"id":"m2445724433","title":"Martin Visser Bank 't Spectrum BR53 - Korte Uitvoering","price":"Bieden","priceNum":null,"city":"Rotterdam","lat":51.959929153037,"lon":4.498667915694,"condition":"Gebruikt","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":70,"saving":null,"typical":{"q1":600,"med":900,"q3":1300},"why":"Original Martin Visser BR53 for 't Spectrum, the rarer short 2.5-seat version, restored in 2015. A Dutch design classic.","unsure":"Open to offers only. The seller mentions visible stains on the seat.","flags":["Stains on the seat"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445724433-martin-visser-bank-t-spectrum-br53-korte-uitvoering","image":"970e37fa-3279-4131-ba81-f7a182b4db23","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":6,"free":false},{"id":"m2445956513","title":"Lennon bank van Westwing - Comfortabele 3-zitsbank","price":"Bieden","priceNum":null,"city":"Rotterdam","lat":51.906570326624,"lon":4.445376193862,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":70,"saving":null,"why":"Westwing Lennon 3-seater, like new, steam-cleaned, from a smoke-free home without pets. Right by the route in Rotterdam.","unsure":"Open to offers only. No measurements beyond the 200–250 cm width class.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445956513-lennon-bank-van-westwing-comfortabele-3-zitsbank","image":"a1315d15-c51a-4b53-be47-9cad79c03fbb","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":7,"free":false},{"id":"m2445674852","title":"Donkerblauwe fluwelen 3-zitsbank - Torino NOUS Living","price":"€120 (bids)","priceNum":120,"city":"Den Hoorn","lat":52.008781338091,"lon":4.3179938840501,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"both","from":null,"protection":true},"fit":74,"saving":80,"why":"Dark blue velvet 3-seater (NOUS Living Torino), 236 × 85 cm, very good condition and easy to clean. Bids from €120.","unsure":"Light wear on the legs, per the seller.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445674852-donkerblauwe-fluwelen-3-zitsbank-torino-nous-living","image":"cd71086c-b48e-428b-bd0b-d22afcb19ef7","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":3,"free":false},{"id":"m2446206120","title":"MADE 3-zits bank oceaanblauw 217 cm breed","price":"€350 (bids)","priceNum":350,"city":"Amsterdam","lat":52.357624601904,"lon":4.8458752304505,"condition":"Nieuw","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":68,"saving":70,"typical":{"q1":300,"med":420,"q3":550},"why":"MADE 3-seater in ocean blue, 217 × 80 cm, hardly sat on, no pets or smoking. Half a kilometre off the route in Amsterdam.","unsure":"Bids from €350. Cushions and throw are not included.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2446206120-made-3-zits-bank-oceaanblauw-217-cm-breed","image":"7c7a085a-7f0f-48e7-877d-6bbce0f335a4","found":"2026-09-24","since":"2026-09-24","status":"active","checked":"2026-09-24","_n":8,"free":false},{"id":"m2445692049","title":"Prachtige Cognac bank (204 x 97 cm) in zeer goede staat","price":"€175","priceNum":175,"city":"Amsterdam","lat":52.365451847293,"lon":4.9081931842555,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":66,"saving":25,"why":"Cognac sofa, 204 × 97 cm, like new, fixed price €175. Pickup in central Amsterdam with a loading spot right at the door.","unsure":"No brand or material given (looks like fabric or faux leather in the photos).","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445692049-prachtige-cognac-bank-204-x-97-cm-in-zeer-goede-staat","image":"080b5aed-f4f6-4300-b6d2-3194ee4133fb","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":9,"free":false},{"id":"m2445721937","title":"Mooie 3-zitsbank (230x90cm) met hocker.  Deze week ophalen!","price":"€100","priceNum":100,"city":"Amsterdam","lat":52.35403375645,"lon":4.9028707913115,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"pickup","from":null,"protection":false},"fit":70,"saving":100,"why":"3-seater of 230 × 90 cm with a matching 90 × 70 footstool, 2 years old, never smoked near. Replacement covers come in 6 colours. Fixed at €100.","unsure":"The seller wants it gone this week, which may be before moving day.","flags":["Pickup this week"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445721937-mooie-3-zitsbank-230x90cm-met-hocker-deze-week-ophalen","image":"80dcf97e-980b-40fd-83b2-74e4a7582a60","found":"2026-09-24","since":"2026-09-23","status":"active","checked":"2026-09-24","_n":5,"free":false},{"id":"m2446185539","title":"Mooie bank - Ikea Soderhamn","price":"€380","priceNum":380,"city":"Rotterdam","lat":51.940072924712,"lon":4.4818581974033,"condition":"Zo goed als nieuw","year":null,"ship":{"method":"both","from":null,"protection":true},"fit":64,"saving":100,"typical":{"q1":350,"med":480,"q3":650},"why":"IKEA Söderhamn corner sofa, barely used and not sagging, with washable covers. Comes in two parts, handy for the van. Shipping with buyer protection is possible.","unsure":"A few very small stains (last photos). It's on a first floor.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2446185539-mooie-bank-ikea-soderhamn","image":"5a905f72-e416-4371-b464-396f201e39fc","found":"2026-09-24","since":"2026-09-24","status":"active","checked":"2026-09-24","_n":10,"free":false},{"id":"m2444994607","title":"Goossens 3-zitsbank - Zo goed als nieuw","price":"€250","priceNum":250,"free":false,"city":"Voorburg","lat":52.07075342715,"lon":4.352365766321,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":80,"why":"Goossens 3-seater in green, 250 × 75 cm, like new, fixed €250. Goossens is a Dutch quality brand; new ones cost well over €1,500.","unsure":"Cushions not included.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444994607-goossens-3-zitsbank-zo-goed-als-nieuw","image":"bae37979-8f6e-4399-bbf2-52b84e55ab30","since":"2026-09-21","status":"active","typical":{"q1":400,"med":600,"q3":900},"found":"2026-09-24","checked":"2026-09-24","year":null,"saving":350},{"id":"m2445737473","title":"Donkergroene fluwelen bank - Zo goed als nieuw","price":"€150 (bids)","priceNum":150,"free":false,"city":"Amsterdam","lat":52.366178524341,"lon":4.8521215985355,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":72,"why":"Dark green velvet 3-seater, 205 × 90 cm, like new and recently cleaned. Half a kilometre from the route in Amsterdam.","unsure":"Bids from €150.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445737473-donkergroene-fluwelen-bank-zo-goed-als-nieuw","image":"4da8a4cf-3287-434a-9b05-0d412e83bef3","since":"2026-09-23","status":"reserved","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":95},{"id":"m2444886901","title":"Comfortabele witte ribstof bank - Zo goed als nieuw","price":"€225","priceNum":225,"free":false,"city":"Leidschendam","lat":52.088672268064,"lon":4.4030993743411,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":74,"why":"Cream corduroy sofa, like new, clean and undamaged. Fixed €225 and right on the route in Leidschendam.","unsure":"No measurements given.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444886901-comfortabele-witte-ribstof-bank-zo-goed-als-nieuw","image":"6ff5658b-e1a7-4112-b87c-548c96a9cf91","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":20},{"id":"m2445128246","title":"Movani 3-zitsbank met 3 jaar wasgarantie","price":"€350","priceNum":350,"free":false,"city":"Rijswijk","lat":52.041302624194,"lon":4.3285381039586,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"Movani 3-seater in bright orange with 3 years of washing guarantee left, like new. Fixed €350.","unsure":"A bold colour. Check it suits the room.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445128246-movani-3-zitsbank-met-3-jaar-wasgarantie","image":"e19e47c5-eef9-4fde-948a-76dcbbaeadbb","since":"2026-09-21","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-105},{"id":"m2446313465","title":"Wehkamp U-bank Bornholm - Goede staat, 3 delen","price":"€100 (bids)","priceNum":100,"free":false,"city":"Amsterdam","lat":52.351944557305,"lon":4.9114967564461,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":74,"why":"Wehkamp Bornholm U-shaped sofa, no visible flaws, comes apart in three pieces for the van. Bids from €100.","unsure":"On a first floor.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2446313465-wehkamp-u-bank-bornholm-goede-staat-3-delen","image":"0b5504ec-7b16-481a-8cc3-30457066d05c","since":"2026-09-24","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":145},{"id":"m2445669736","title":"Royale hoekbank 3m breed | verstelbare rug- & armleuningen","price":"€150 (bids)","priceNum":150,"free":false,"city":"Amsterdam","lat":52.358237529917,"lon":4.7973365484763,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":76,"why":"Big corner sofa, 300 cm wide with a long lounge end. Back and armrests adjust from upright to deep lounging. Like new, bids from €150.","unsure":"","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445669736-royale-hoekbank-3m-breed-verstelbare-rug-armleuningen","image":"887058c4-861f-44f9-b461-5139776e74d4","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":95},{"id":"m2444877781","title":"Ikea Kivik 3-zitsbank - Beige","price":"€250 (bids)","priceNum":250,"free":false,"city":"Rotterdam","lat":51.903488217016,"lon":4.4643792819721,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":68,"why":"IKEA Kivik 3-seater in beige, 228 × 95 cm, like new. Washable covers.","unsure":"Bids from €250, near the typical price for a used Kivik.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444877781-ikea-kivik-3-zitsbank-beige","image":"64051d99-735d-4038-8605-33a7a81f04c1","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2444682839","title":"IKEA VIMLE Hoekbank met chaise longue en opbergruimte","price":"€250 (bids)","priceNum":250,"free":false,"city":"Voorburg","lat":52.076878414066,"lon":4.3602051839073,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"IKEA Vimle corner sofa with chaise longue and storage underneath, in grey, like new. Bids from €250.","unsure":"No measurements given.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444682839-ikea-vimle-hoekbank-met-chaise-longue-en-opbergruimte","image":"ce36c6c5-0b83-4f67-80d4-7379c9045b13","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2444879955","title":"Sofa + poef, bank in zwart leer + voetenbank Ikea Landskrona","price":"€300 (bids)","priceNum":300,"free":false,"city":"Leiden","lat":52.155236015761,"lon":4.5114411044071,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":72,"why":"IKEA Landskrona black leather 2.5-seater (186 × 82 cm) with matching footstool and wooden legs, excellent condition. Right in Leiden on the route.","unsure":"Bids from €300.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444879955-sofa-poef-bank-in-zwart-leer-voetenbank-ikea-landskrona","image":"f19ec9af-6004-476d-a7c9-552a461d1c45","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-55},{"id":"m2444647461","title":"Ikea Landskrona Groen 3-zitsbank - Zeer goede staat","price":"€300 (bids)","priceNum":300,"free":false,"city":"Amsterdam","lat":52.356023375301,"lon":4.9170729435018,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"IKEA Landskrona 3-seater in green, two years old, very good condition. Comes with wooden legs, and the original metal ones are included.","unsure":"Bids from €300.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444647461-ikea-landskrona-groen-3-zitsbank-zeer-goede-staat","image":"a2897a7a-b4b1-4af5-b674-9ef28bc8bbb1","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-55},{"id":"m2445898154","title":"Moderne Hoekbank met Longchair - Zo goed als nieuw","price":"€390 (bids)","priceNum":390,"free":false,"city":"Amsterdam","lat":52.353930981448,"lon":4.8135105954543,"condition":"Zo goed als nieuw","ship":{"method":"both","from":39,"protection":true},"fit":62,"why":"Modern corner sofa with a long chair end in a neutral fabric, like new. Shipping with buyer protection is possible from €39.","unsure":"Bids from €390, close to your €400 limit.","flags":["Seller account only 4 days old"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445898154-moderne-hoekbank-met-longchair-zo-goed-als-nieuw","image":"ace3029b-78f7-455d-9c75-9fe2e4231b0b","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-145},{"id":"m2446244639","title":"Gelderland bank zwart stof 180cm","price":"€100","priceNum":100,"free":false,"city":"Koudekerk aan den Rijn","lat":52.131643777723,"lon":4.5904230604072,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":64,"why":"Gelderland sofa in black fabric, 180 cm, €100. Gelderland is a Dutch design brand.","unsure":"Sold by a second-hand furniture shop in Koudekerk aan den Rijn, which also delivers.","flags":["Shop, not a private seller"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2446244639-gelderland-bank-zwart-stof-180cm","image":"24d68c8b-6873-4b38-b697-adc4820a5088","since":"2026-09-24","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":145},{"id":"m2444301581","title":"WOOOD Rodeo 3-zits bank army - 275 cm lang","price":"€90 (bids)","priceNum":90,"free":false,"city":"Badhoevedorp","lat":52.342437465718,"lon":4.7880751694492,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"WOOOD Rodeo 3-seater in army green, 275 × 96 cm. Big and comfortable, bids from €90.","unsure":"Some edges are a little pilled, per the seller.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444301581-woood-rodeo-3-zits-bank-army-275-cm-lang","image":"b5077347-5755-4321-adeb-39c942be5d07","since":"2026-09-19","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":155},{"id":"m2444205306","title":"3-zitsbank NOUS Living Torino donkergroen","price":"€100 (bids)","priceNum":100,"free":false,"city":"Amsterdam","lat":52.364968935509,"lon":4.9149377734146,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":72,"why":"NOUS Living Torino 3-seater in dark green velvet, 238 × 91 cm, about 7 years old and easy to clean. Bids from €100. Popular: 207 views, 13 saves.","unsure":"Available from 24 September.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444205306-3-zitsbank-nous-living-torino-donkergroen","image":"e65614e9-746c-4f35-8a3c-2835c7019a2e","since":"2026-09-19","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":145},{"id":"m2443635421","title":"Loungebank Machalke","price":"€100 (bids)","priceNum":100,"free":false,"city":"'s-Gravenhage","lat":52.074202320889,"lon":4.320963506014,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"Machalke lounge sofa in brown leather, 200 × 95 cm, with loose cushions and a bottle of leather oil included. Machalke is a German quality brand. Bids from €100.","unsure":"It's in central Den Haag, 8 km off the route.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443635421-loungebank-machalke","image":"9ed3435f-617e-4e10-8969-0be68daf0958","since":"2026-09-17","status":"active","typical":{"q1":300,"med":500,"q3":800},"found":"2026-09-24","checked":"2026-09-24","year":null,"saving":400},{"id":"m2445954725","title":"Zuiver Ribstof/corduroy 3-zits hoekbank - Oranje","price":"€200 (bids)","priceNum":200,"free":false,"city":"Rotterdam","lat":51.944800774731,"lon":4.4768465453175,"condition":"Gebruikt","ship":{"method":"both","from":39,"protection":true},"fit":74,"why":"Zuiver corduroy corner sofa in rust orange, 210 × 96.5 cm. New price was €959. No stains, from a smoke-free home. Can be shipped with buyer protection.","unsure":"Bids from €200.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445954725-zuiver-ribstof-corduroy-3-zits-hoekbank-oranje","image":"4cf47a69-fd89-4640-8c24-8fa17b4d11b1","since":"2026-09-23","status":"active","typical":{"q1":250,"med":380,"q3":500},"found":"2026-09-24","checked":"2026-09-24","year":null,"saving":180},{"id":"m2443664535","title":"Paularo Hoekbank Pronto","price":"€200 (bids)","priceNum":200,"free":false,"city":"Vlaardingen","lat":51.912552881694,"lon":4.3333812596067,"condition":"Gebruikt","ship":{"method":"both","from":39,"protection":true},"fit":72,"why":"Pronto Paularo corner sofa in camel microleather, 261 × 212 cm, bought in 2020 and well kept. Can be shipped with buyer protection.","unsure":"Bids from €200.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443664535-paularo-hoekbank-pronto","image":"b6cd33bd-a221-4789-ba4a-086dfb905d92","since":"2026-09-17","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":45},{"id":"m2445527895","title":"WOOD Stoffen Bank met Hocker - 330x100x72 cm","price":"€250 (bids)","priceNum":250,"free":false,"city":"Zoetermeer","lat":52.071771268505,"lon":4.4968933188531,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"WOOOD fabric sofa in 3 loose parts (330 × 100 cm) with a matching footstool. Big seating for a big room.","unsure":"10 years old.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445527895-wood-stoffen-bank-met-hocker-330x100x72-cm","image":"1ba6b5f0-a8d1-4bff-8a5d-ed1873de61a6","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2445518032","title":"Loods 5 Okergele Bank - 275 cm breed","price":"€250 (bids)","priceNum":250,"free":false,"city":"Leiden","lat":52.17263064735,"lon":4.4763579161169,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":72,"why":"Loods 5 ochre sofa, 275 × 95 cm. All covers are removable and washable (just cleaned). No stains or tears, on the ground floor.","unsure":"The armrests could still use a clean.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445518032-loods-5-okergele-bank-275-cm-breed","image":"5307aae0-dedc-4457-9915-6d58e102c8ca","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2445021649","title":"Tweezitsbank Gelderland, ontwerp Jan des Bouvries","price":"€250 (bids)","priceNum":250,"free":false,"city":"Hoofddorp","lat":52.29645587734,"lon":4.6580963992632,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":74,"why":"Gelderland 2-seater designed by Jan des Bouvries, 170 × 90 cm, in black fabric. A Dutch design classic.","unsure":"Bids from €250.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445021649-tweezitsbank-gelderland-ontwerp-jan-des-bouvries","image":"8e999795-89fa-4477-99df-975d60c1ac75","since":"2026-09-21","status":"active","typical":{"q1":300,"med":450,"q3":700},"found":"2026-09-24","checked":"2026-09-24","year":null,"saving":200},{"id":"m2443669982","title":"Grote hoekbank grijs velours","price":"€250 (bids)","priceNum":250,"free":false,"city":"Amsterdam","lat":52.356370386482,"lon":4.8012215862061,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":72,"why":"Large grey velour corner sofa, 355 cm wide with a 220 cm ottoman and extra-deep seats. Three separate modules and reversible cushions, easy to move.","unsure":"Bids from €250.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443669982-grote-hoekbank-grijs-velours","image":"a716b730-ec4b-4c0d-ade4-8fad8f826887","since":"2026-09-17","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2443986217","title":"Rolf Benz 2400 Design Bank - Zwart Leer, Verstelbaar","price":"€350 (bids)","priceNum":350,"free":false,"city":"Rotterdam","lat":51.943631652739,"lon":4.4523808200624,"condition":"Gebruikt","ship":{"method":"both","from":39,"protection":true},"fit":78,"why":"Rolf Benz 2400 design sofa in black leather, 254 cm. The seats rotate into a relax position and the back adjusts. Can be shipped with buyer protection.","unsure":"Bids from €350. Rolf Benz new costs several thousand euros.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443986217-rolf-benz-2400-design-bank-zwart-leer-verstelbaar","image":"22e153a8-d3a6-4e1d-9f5c-f7d188b46f11","since":"2026-09-18","status":"active","typical":{"q1":600,"med":900,"q3":1400},"found":"2026-09-24","checked":"2026-09-24","year":null,"saving":550},{"id":"m2443706059","title":"Molinari Gele leren 2,5 zits bank","price":"€350 (bids)","priceNum":350,"free":false,"city":"Oegstgeest","lat":52.186559069078,"lon":4.4795532120295,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"Molinari yellow leather 2.5-seater, 194 × 89 cm, with full measurements listed. A Dutch quality brand.","unsure":"Bids from €350. Yellow leather is a strong colour.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443706059-molinari-gele-leren-2-5-zits-bank","image":"b32b0401-89bc-4097-8688-4d4cca0e8669","since":"2026-09-17","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-105},{"id":"m2444584674","title":"Comfortabele groene driezitsbank - Zo goed als nieuw","price":"€75","priceNum":75,"free":false,"city":"Rotterdam","lat":51.900036646979,"lon":4.4753708537599,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"Green 3-seater, like new, for €75.","unsure":"No brand or measurements given.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444584674-comfortabele-groene-driezitsbank-zo-goed-als-nieuw","image":"e3679dab-5291-44c5-a49d-e84ccbaba385","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":170},{"id":"m2445531338","title":"Donkergroene bank 2,5 zits","price":"€250","priceNum":250,"free":false,"city":"Rotterdam","lat":51.936462607307,"lon":4.4625811508098,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":68,"why":"Dark green 2.5-seater, 197 × 85 cm, fixed €250. Matching bar stools are also for sale.","unsure":"Heavy: needs several people to carry.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445531338-donkergroene-bank-2-5-zits","image":"0331ede7-a9c0-4286-9109-63277ab0e5a8","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":-5},{"id":"m2444824015","title":"Roze bank - Zo goed als nieuw!","price":"€200 (bids)","priceNum":200,"free":false,"city":"Amsterdam","lat":52.367382461257,"lon":4.869064987805,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":64,"why":"Pink sofa, 150 × 80 cm, barely used, from a smoke-free home. The legs come off for transport.","unsure":"Compact, only 150 cm wide.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444824015-roze-bank-zo-goed-als-nieuw","image":"d4762fe9-444d-4151-8352-7fcb50e99e3f","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":45},{"id":"m2444092962","title":"Comfortabele 2-zitsbank in zwart, zeer goede staat","price":"€100 (bids)","priceNum":100,"free":false,"city":"Zoetermeer","lat":52.070761595228,"lon":4.4765137336842,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"Black 2-seater, 180 × 87 cm, very good condition.","unsure":"Serious bids only, per the seller.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444092962-comfortabele-2-zitsbank-in-zwart-zeer-goede-staat","image":"a10257e4-31da-46b1-9818-eef2ab1dcaa3","since":"2026-09-18","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":145},{"id":"m2445882945","title":"Prominent tweepersoonsbank in perfecte staat","price":"€150 (bids)","priceNum":150,"free":false,"city":"Warmond","lat":52.194544337982,"lon":4.49823322264,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":58,"why":"Prominent 2-seater with pull-out seats for longer or shorter legs, salmon-pink alcantara, like new.","unsure":"Under 150 cm wide.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445882945-prominent-tweepersoonsbank-in-perfecte-staat","image":"5e7cad31-7105-46f5-b11f-4d035509a71e","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":95},{"id":"m2445181019","title":"Gratis Luxe Baxter Alfred 2+ 3-zitsbank van leer","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.361135329336,"lon":4.9290733388735,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":88,"why":"Free Baxter Alfred leather set (2- and 3-seater), from the Italian luxury brand. The Baxter label proves it's authentic. Easily worth over €1,000 second-hand.","unsure":"Only free if collected within 6 days (from 21 Sep), so this can't wait for moving day.","flags":["Collect within 6 days"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445181019-gratis-luxe-baxter-alfred-2-3-zitsbank-van-leer","image":"b97d5203-2dc8-4302-b88d-94cfd5b56076","since":"2026-09-21","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445376479","title":"Linteloo bank","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.350870522925,"lon":4.9194418238435,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":84,"why":"Free Linteloo 3-seater, 260 × 93 cm, from the Dutch design brand. 325 views already, so be quick.","unsure":"Doesn't fit in the lift, so it comes down the stairs.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445376479-linteloo-bank","image":"0b625f39-da73-4bff-912e-bebe75c79a24","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2444592707","title":"Leolux Bora Beta bank – gratis af te halen","price":"Gratis","priceNum":0,"free":true,"city":"Zoetermeer","lat":52.042793874,"lon":4.4872964455311,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":82,"why":"Free Leolux Bora Beta in black leather, a Leolux design classic.","unsure":"It's in Zoetermeer, near the edge of the 10 km detour.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444592707-leolux-bora-beta-bank-gratis-af-te-halen","image":"48f4c399-bad2-4788-9f92-0888ef80e763","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445600839","title":"Leren 2-zitsbank 'Longlife by W.Schillig' - Roodbruin 185cm","price":"Gratis","priceNum":0,"free":true,"city":"Aalsmeer","lat":52.267400395519,"lon":4.7600069201307,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":80,"why":"Free W.Schillig 'Longlife' 2-seater in reddish-brown leather, 185 cm. A German quality brand, in good used condition.","unsure":"","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445600839-leren-2-zitsbank-longlife-by-w-schillig-roodbruin-185cm","image":"2ef18751-009e-4b5f-9223-f11c9b6b760f","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2444672809","title":"3-zitsbank Vilmar Elliot Light Grey - Sofacompany","price":"Gratis","priceNum":0,"free":true,"city":"Rotterdam","lat":51.905902657708,"lon":4.451501851847,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":80,"why":"Free Sofacompany Vilmar 3-seater in light grey, 220 × 97 cm, 7 years old and in good condition.","unsure":"Reserved right now. Worth a message in case the first taker drops out.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444672809-3-zitsbank-vilmar-elliot-light-grey-sofacompany","image":"1dbc9b1e-725f-4467-bb1c-327f5134af9d","since":"2026-09-20","status":"reserved","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445526405","title":"Grijze hoekbank met chaise longue - 280x240 cm","price":"Gratis","priceNum":0,"free":true,"city":"Rotterdam","lat":51.930597393832,"lon":4.4707580512599,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":76,"why":"Free Zitmaxx grey corner sofa with chaise longue, 280 × 240 cm, good-quality fabric and in good condition.","unsure":"Must be collected as soon as possible.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445526405-grijze-hoekbank-met-chaise-longue-280x240-cm","image":"501d3d43-fd1b-45aa-a72a-86aca4e10086","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445952636","title":"Ruime microleder hoekbank met chaise longue","price":"Gratis","priceNum":0,"free":true,"city":"Pijnacker","lat":52.00491136307,"lon":4.4528436197682,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"Free microleather corner sofa, 305 × 110 cm with a 180 cm chaise, 6 years old.","unsure":"Pickup only on Sunday 27 September, in the evening.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445952636-ruime-microleder-hoekbank-met-chaise-longue","image":"424efa44-ce4c-488c-9786-894524d9b615","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445832869","title":"Zwarte bank, gratis af te halen","price":"Gratis","priceNum":0,"free":true,"city":"Rotterdam","lat":51.936923130199,"lon":4.471520439003,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":68,"why":"Free dark grey 3-seater, 200 × 90 cm. Looks clean and modern in the photos.","unsure":"Very short description.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445832869-zwarte-bank-gratis-af-te-halen","image":"ff003c15-fe9f-465e-a57b-b8f77081c65f","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445243263","title":"Blauwe bankenset - 2- en 3-zits. gratis meenemen","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.380711830387,"lon":4.8148091170454,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"Free blue fabric set, 2-seater + 3-seater (240 cm), clean, with cushions. The 3-seater's sides come off for transport.","unsure":"","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445243263-blauwe-bankenset-2-en-3-zits-gratis-meenemen","image":"e3dbaa31-4897-41ce-af65-3e21252d3c2f","since":"2026-09-21","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2444990067","title":"DONDERDAG OPHALEN Comfortabele 2.5-zits bank - 187x85 cm","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.362515480946,"lon":4.8325844238691,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"Free 2.5-seater in quality vegan leather, 187 × 85 cm, good condition.","unsure":"The title says pick it up on Thursday, so it may be gone soon.","flags":["Pickup this Thursday"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444990067-donderdag-ophalen-comfortabele-2-5-zits-bank-187x85-cm","image":"aef427f2-c66f-483f-b1e6-454cf833155f","since":"2026-09-21","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445254085","title":"Comfortabele 3-zits bank, lichtgrijs, zo goed als nieuw","price":"Gratis","priceNum":0,"free":true,"city":"Nieuw-Vennep","lat":52.267726868003,"lon":4.6127305835109,"condition":"Gebruikt","ship":{"method":"both","from":39,"protection":true},"fit":74,"why":"Free light cream 3-seater, 2 years old, stuffing still firm. Given away because of a move.","unsure":"","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445254085-comfortabele-3-zits-bank-lichtgrijs-zo-goed-als-nieuw","image":"874517ed-9ecc-4df7-adcb-9f8e14b13c39","since":"2026-09-21","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445171826","title":"Comfortabele grijze hoekbank met chaise longue","price":"Gratis","priceNum":0,"free":true,"city":"Zoeterwoude","lat":52.141434327684,"lon":4.5262766549474,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":66,"why":"Free grey corner sofa with chaise longue, modern look.","unsure":"Reserved right now.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445171826-comfortabele-grijze-hoekbank-met-chaise-longue","image":"1e3499fa-e616-4642-8675-1dfd86c17e5c","since":"2026-09-21","status":"reserved","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445522495","title":"Gratis: Mooie roodbruine leren driezitsbank","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.36463514539,"lon":4.9454789574489,"condition":"Gebruikt","ship":{"method":"pickup","from":null,"protection":false},"fit":70,"why":"Free reddish-brown leather 3-seater in fine condition.","unsure":"It has to come down from the 3rd floor through the window with a pulley.","flags":["Needs a pulley"],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445522495-gratis-mooie-roodbruine-leren-driezitsbank","image":"99bdb4df-aa22-44be-a0f9-61314f538fc6","since":"2026-09-22","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2444609895","title":"Gratis Hoekbank - Comfortabel en Modern","price":"Gratis","priceNum":0,"free":true,"city":"Amsterdam","lat":52.374260067491,"lon":4.8596229619806,"condition":"Gebruikt","ship":{"method":"both","from":39,"protection":true},"fit":66,"why":"Free modern corner sofa, about 250 × 180 cm, good condition.","unsure":"","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444609895-gratis-hoekbank-comfortabel-en-modern","image":"b52b4a8f-83e1-45db-ba97-3f4866e3f590","since":"2026-09-20","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2444453782","title":"Nieuwe 2-zitsbank, gratis op te halen","price":"Gratis","priceNum":0,"free":true,"city":"Rotterdam","lat":51.918321342338,"lon":4.4768256368721,"condition":"Nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":64,"why":"Free brand-new VidaXL 2-seater in dark grey, 185 cm, never used (it was staging for a house sale). Central Rotterdam with good loading access.","unsure":"VidaXL is a budget brand.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2444453782-nieuwe-2-zitsbank-gratis-op-te-halen","image":"4593d2b9-d4b7-42d9-8d5b-14336005d6eb","since":"2026-09-19","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null},{"id":"m2445639386","title":"Comfortabele 2-zits bankstel - Zo goed als nieuw","price":"Gratis","priceNum":0,"free":true,"city":"'s-Gravenhage","lat":52.0500934225,"lon":4.3012277120564,"condition":"Zo goed als nieuw","ship":{"method":"pickup","from":null,"protection":false},"fit":62,"why":"Free 2-seater, like new, no visible damage.","unsure":"Short description.","flags":[],"url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445639386-comfortabele-2-zits-bankstel-zo-goed-als-nieuw","image":"65dd0de7-a3c3-4ca7-b1e0-41084a11d304","since":"2026-09-23","status":"active","found":"2026-09-24","checked":"2026-09-24","year":null,"saving":null}],"flags":[{"title":"Ligne Roset Togo Hoek | Camel Leder","price":"€3.300","city":"Hoofddorp","reason":"Listed as a private sale but carries a manufacturer's trade name and contact fields and says 'other colours on request'. It's a shop, and €3,300 is close to the new price.","level":"warn","url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445714063-ligne-roset-togo-hoek-camel-leder","image":""},{"title":"Wehkamp Comfortabele 2-zits bank - Crèmekleurige Bouclé Stof","price":"€140 (bids)","city":"Rotterdam","reason":"The seller's account is brand new (0 days on Marktplaats). Meet in person and pay on pickup only.","level":"warn","url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445960689-wehkamp-comfortabele-2-zits-bank-cremekleurige-boucle-stof","image":""},{"title":"3-in-1 Sofa Bed met Fauteuils","price":"Gratis","city":"Amsterdam","reason":"Listed as free but the photo is a shop advert ('50% off', delivery). It's a shop, not a giveaway.","level":"warn","url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2443760984","image":""},{"title":"IKEA Vimla 3-zitsbank - licht beige","price":"€300 (bids)","city":"Amsterdam","reason":"Uses IKEA's stock photo instead of a photo of the actual sofa, so its condition can't be judged.","level":"warn","url":"https://www.marktplaats.nl/v/huis-en-inrichting/banken-bankstellen/m2445715638","image":""}],"notes":"Rescanned the whole past week along the A4, using 29 search areas so busy cities weren't cut off. 1,355 couches read, 912 private ones within a 10 km detour, 589 of them with a price. Paid deals are capped at your €400 maximum, so the Leolux set (€450) and the Montis (€500) came off. Free couches: 111 found. 31 were dropped on their description (stains, damage, sagging, pets, 'needs cleaning'), then the rest were checked on their photos for dirt, wear and dated style. 18 made it, and 16 are on the board after two dropped out on detailed checks. Free couches go fast: several need collecting within days, so the moving date may not fit. Message sellers early.","seen":["m2445968654","m2446262119","m2445724433","m2445956513","m2445674852","m2446206120","m2445692049","m2445721937","m2446185539","m2444994607","m2445737473","m2444886901","m2445128246","m2446313465","m2445669736","m2444877781","m2444682839","m2444879955","m2444647461","m2445898154","m2446244639","m2444301581","m2444205306","m2443635421","m2445954725","m2443664535","m2445527895","m2445518032","m2445021649","m2443669982","m2443986217","m2443706059","m2444584674","m2445531338","m2444824015","m2444092962","m2445882945","m2445181019","m2445376479","m2444592707","m2445600839","m2444672809","m2445526405","m2445952636","m2445832869","m2445243263","m2444990067","m2445254085","m2445171826","m2445522495","m2444609895","m2444453782","m2445639386","m2446246246","m2446212222","m2446126483","m2446035972","m2446006591","m2445960689","m2445932079","m2445889567","m2445731948","m2445683571","m2446293364","m2446267148","m2446219749","m2446212752","m2446178830","m2446154449","m2446124854","m2446020699","m2446020110","m2446017055","m2446003872","m2446001710","m2445968518","m2445959641","m2445955925","m2445947292","m2445941533","m2445913069","m2445870090","m2445857363","m2445829231","m2445814232","m2445810849","m2445808751","m2445792226","m2445786652","m2445773027","m2445756307","m2445735918","m2445720065","m2445717164","m2445715376","m2445709086","m2445706475","m2445701262","m2445675847","m2445649815","m2445616368","m2445766612","m2446175912","m2445968573","m2445972770","m2445718589","m2445647468","m2446229365","m2446116947","m2446018292","m2445910837","m2445906414","m2445884591","m2445869774","m2446290870","m2446280273","m2446257057","m2446220065","m2446186853","m2446181675","m2446180519","m2446152791","m2446128811","m2446014181","m2446002305","m2445953132","m2445939072","m2445934157","m2445929504","m2445865457","m2445829750","m2445813045","m2445793736","m2445786964","m2445783629","m2445776520","m2445753511","m2445729441","m2445667553","m2445656552","m2445645176","m2445645037","m2445638960","m2445617727","m2445747441","m2446277179","m2446193202","m2445778849","m2446294986","m2446206232","m2445765961","m2445694798","m2446282165","m2446280604","m2446277359","m2446241006","m2446242050","m2446208139","m2446207637","m2446103427","m2445890987","m2445794664","m2445788530","m2445758387","m2445751325","m2445699343","m2445688994","m2445684867","m2445680287","m2445668112","m2445869914","m2445881015","m2445874353","m2445845012","m2445758350","m2445754752","m2445747236","m2446298644","m2446259872","m2446255242","m2446238057","m2446185902","m2445990766","m2445973923","m2445960538","m2445959909","m2445937320","m2445936809","m2445934738","m2445908197","m2445874473","m2445844570","m2445832400","m2445783731","m2445752674","m2445721029","m2445718373","m2445714063","m2445700648","m2445690746","m2445690354","m2446298621","m2446296089","m2446198522","m2446116419","m2445942380","m2445739729","m2445646624","m2446105472","m2446276190","m2446273468","m2446253780","m2446239614","m2446239391","m2446202542","m2446169021","m2446135721","m2446112618","m2446008430","m2445999139","m2445989462","m2445933709","m2445898337","m2445886996","m2445870967","m2445868996","m2445859728","m2445817062","m2445813357","m2445794608","m2445788985","m2445779724","m2445778155","m2445727117","m2445726049","m2445716818","m2445713886","m2445713654","m2445688333","m2445644309","m2445622883","m2445715638","m2445777903","m2445881701","m2445861185","m2446282690","m2446256444","m2446254580","m2446231034","m2446169788","m2446103103","m2445934075","m2445926213","m2445915442","m2445804569","m2445766292","m2445748571","m2445702422","m2445701215","m2445693165","m2445686867","m2445678943"]}},"budgets":[{"id":"dining","name":"Dining table + chairs","max":400,"hunts":["dining-table","dining-chairs"]}]}</script>
+<!-- ===== end BOARD ===== -->
+
+<script>
+const CATEGORIES=[
+  ["","Let the scout pick the category"],
+  ["huis-en-inrichting/banken-bankstellen","Huis en Inrichting › Banken | Bankstellen"],
+  ["huis-en-inrichting/tafels-eettafels","Huis en Inrichting › Tafels | Eettafels"],
+  ["huis-en-inrichting/stoelen","Huis en Inrichting › Stoelen"],
+  ["huis-en-inrichting/slaapkamer-bedden","Huis en Inrichting › Bedden"],
+  ["huis-en-inrichting","Huis en Inrichting (all)"],
+  ["fietsen-en-brommers","Fietsen en Brommers"],
+  ["audio-tv-en-foto","Audio, Tv en Foto"],
+  ["computers-en-software","Computers en Software"],
+  ["witgoed-en-apparatuur","Witgoed en Apparatuur"],
+  ["tuin-en-terras","Tuin en Terras"],
+  ["kinderen-en-baby-s","Kinderen en Baby's"],
+  ["muziek-en-instrumenten","Muziek en Instrumenten"],
+  ["sport-en-fitness","Sport en Fitness"]
+];
+const CONDITIONS=["Nieuw","Zo goed als nieuw","Gebruikt"];
+const TRANSPORT={car:"Own car",van:"Van (e.g. rented for moving day)",none:"No car"};
+const ROAD=1.3, LIFE_DAYS=28, PETROL_L100=6.0, LPG_L100=7.0, STOP_MIN=10;
+const IMG="https://images.marktplaats.com/api/v1/hz-mp-pro-listing/images/";
+const PC_RE=/^\s*\d{4}\s?[A-Za-z]{2}\s*$/;
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const eur=n=>n==null||isNaN(n)?"—":"€"+Math.round(n).toLocaleString("nl-NL");
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fmtDate=s=>{if(!s)return"";const d=new Date(s.slice(0,10)+"T12:00:00");return `${d.getDate()} ${MONTHS[d.getMonth()]}`;};
+const dayDiff=(a,b)=>Math.round((new Date(b.slice(0,10)+"T12:00:00")-new Date(a.slice(0,10)+"T12:00:00"))/864e5);
+const today=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam"}).format(new Date());
+const slug=s=>String(s||"hunt").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"hunt";
+
+const SHARE=!!window.SHARE_MODE;
+let BOARD=JSON.parse(document.getElementById("board").textContent);
+const ORIG=JSON.parse(JSON.stringify(BOARD.hunts)); /* for sending only what changed */
+let sel=null, editing=null, view="all", sortBy=null, dirty=false, confirmDel=false, fileHandle=null;
+
+/* ---------- geometry ---------- */
+function crow(a,b){const R=6371,t=Math.PI/180,dLa=(b.lat-a.lat)*t,dLo=(b.lon-a.lon)*t;const h=Math.sin(dLa/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+function driveMin(k){return k<=10?k/35*60:10/35*60+(k-10)/80*60;}
+function fmtMin(m){m=Math.max(5,Math.round(m/5)*5);return m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")}`;}
+function routePts(h){const p=h.route&&h.route.pts;return Array.isArray(p)&&p.length>1?p.map(x=>({lat:x[0],lon:x[1]})):null;}
+/* extra km a stop at P adds to the trip, and how far along the route (0..1) it sits */
+function onRoute(h,d){
+  const P=routePts(h);if(!P||d.lat==null)return null;
+  const seg=[];let tot=0;for(let i=0;i<P.length-1;i++){const L=crow(P[i],P[i+1]);seg.push(L);tot+=L;}
+  let best=1e9,along=0,acc=0;
+  for(let i=0;i<P.length-1;i++){
+    const a=crow(P[i],d),b=crow(d,P[i+1]),x=a+b-seg[i];
+    if(x<best){best=x;const f=seg[i]?Math.max(0,Math.min(1,(a*a-b*b+seg[i]*seg[i])/(2*seg[i]*seg[i]))):0;along=(acc+f*seg[i])/tot;}
+    acc+=seg[i];
+  }
+  return {detourKm:best*ROAD,along,totalKm:tot*ROAD};
+}
+function kmFromHome(d,R){if(R&&R.home&&d.lat!=null)return crow(R.home,d);return d.km??null;}
+
+/* ---------- listing freshness ---------- */
+function life(d,R){
+  const td=(R&&R.date)||today();
+  const st=d.status||"active", isNew=(d.found||"")===td;
+  let online=null,left=null,txt="",cls="";
+  if(d.since){online=Math.max(0,dayDiff(d.since,td));left=LIFE_DAYS-(online%LIFE_DAYS);}
+  if(st==="gone"){txt="No longer on Marktplaats";cls="bad";}
+  else if(st==="sold"){txt="Marked as sold";cls="bad";}
+  else if(online!=null){
+    txt=`Online ${online===0?"since today":online+" day"+(online===1?"":"s")}`;
+    if(left<=3){txt+=` · may expire in ${left} day${left===1?"":"s"}`;cls="bad";}
+    else if(left<=7){txt+=` · 28-day cycle ends in ${left} days`;cls="warn";}
+  }
+  const dropped=d.prevPrice&&d.priceNum<d.prevPrice;
+  return {st,isNew,online,left,txt,cls,dropped,attention:st!=="active"||(left!=null&&left<=3)||dropped};
+}
+
+/* ---------- photos: a few at a time, with retries ---------- */
+const RULES=["ecg_mp_eps$_85","ecg_mp_eps$_84","ecg_mp_eps$_86"]; /* 726px, 498px, 1024px wide */
+const imgQueue=[];let imgActive=0;
+function imgTag(id){if(SHARE&&!window.SHARE_PHOTOS)return `<span class="ph">Photos on Marktplaats ↗</span>`;return id?`<img data-img="${esc(id)}" alt="" referrerpolicy="no-referrer"><span class="ph">Loading photo…</span>`:`<span class="ph">No photo</span>`;}
+function queueImages(root){root.querySelectorAll("img[data-img]:not([data-q])").forEach(el=>{el.dataset.q="1";el.dataset.try="0";imgQueue.push(el);});pump();}
+function pump(){while(imgActive<3&&imgQueue.length){const el=imgQueue.shift();imgActive++;
+  const done=ok=>{imgActive--;const ph=el.nextElementSibling;if(ok){el.classList.add("ok");ph&&ph.classList.contains("ph")&&ph.remove();}else{const t=+el.dataset.try+1;if(t<5){el.dataset.try=t;setTimeout(()=>{imgQueue.push(el);pump();},700*t);}else{el.hidden=true;if(ph)ph.textContent="Photo didn't load · open the listing";}}pump();};
+  el.onload=()=>done(true);el.onerror=()=>done(false);const t=+el.dataset.try;el.src=IMG+el.dataset.img+"?rule="+RULES[t%3]+(t>=3?"&r="+t:"");}}
+
+/* ---------- saving into this very file ---------- */
+function serialize(){
+  const clone=document.documentElement.cloneNode(true);
+  clone.querySelector("#board").textContent=JSON.stringify(BOARD).replace(/<\//g,"<\\/");
+  ["#tabs","#main","#schedule"].forEach(s=>{const n=clone.querySelector(s);if(n)n.innerHTML="";});
+  const sb=clone.querySelector("#savebar");if(sb)sb.hidden=true;const bt=clone.querySelector("#savebtn");if(bt){bt.removeAttribute("disabled");bt.textContent="Save to Hunt Board.html";}const sx=clone.querySelector("#sendbox");if(sx){sx.hidden=true;sx.innerHTML="";}
+  return "<!doctype html>\n"+clone.outerHTML;
+}
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("hunt-board",1);r.onupgradeneeded=()=>r.result.createObjectStore("h");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbGet(){try{const db=await idb();return await new Promise(r=>{const q=db.transaction("h").objectStore("h").get("file");q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null);});}catch(e){return null;}}
+async function idbSet(h){try{const db=await idb();db.transaction("h","readwrite").objectStore("h").put(h,"file");}catch(e){}}
+const changed=new Set();
+function markDirty(id){dirty=true;if(id)changed.add(id);document.getElementById("savebar").hidden=false;
+  if(SHARE){document.getElementById("savemsg").textContent="Your changes are only on this screen so far. Send them to Marijn so the next scan uses them.";document.getElementById("savebtn").textContent="Send changes to Marijn";}
+  else document.getElementById("savemsg").textContent="You have changes that aren't saved to the file yet. The scout only sees what's saved.";}
+function changeBlock(){
+  const hunts={};
+  changed.forEach(id=>{const h=BOARD.hunts[id];if(!h)return;const o=ORIG[id];
+    if(!o){const n=JSON.parse(JSON.stringify(h));if(n.route)delete n.route.pts;delete n.createdAt;delete n.order;hunts[id]=n;return;}
+    const d={};
+    for(const k of Object.keys(h)){if(["route","createdAt","updatedAt","order","keywordsNl","keywordsSource"].includes(k))continue;if(JSON.stringify(h[k])!==JSON.stringify(o[k]))d[k]=h[k];}
+    const hr=h.route||{},or=o.route||{},rd={};for(const k of ["from","to","detourKm","moveDate"])if(JSON.stringify(hr[k])!==JSON.stringify(or[k]))rd[k]=hr[k];
+    if(Object.keys(rd).length)d.route=rd;
+    if(Object.keys(d).length)hunts[id]=d;});
+  const budgets=(BOARD.budgets||[]).filter(b=>b.hunts.some(x=>changed.has(x)));
+  return "--- HUNT BOARD CHANGES ---\n"+JSON.stringify({v:2,hunts,budgets,touched:Object.keys(hunts)})+"\n--- END ---";}
+function showSend(){
+  const box=document.getElementById("sendbox");const txt=changeBlock();
+  box.innerHTML=`<h2>Send your changes to Marijn</h2><ol><li>Copy the text below.</li><li>Open today's <b>Marktplaats finds</b> email and press <b>Reply</b>.</li><li>Paste it in and send. The next 12:00 scan picks it up and uses your new criteria.</li></ol>
+  <textarea id="changetext" readonly>${esc(txt)}</textarea>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn primary" type="button" id="copybtn">Copy changes</button><span class="sub" id="copymsg">You can also just reply in your own words, like "couch max €500, no leather".</span></div>`;
+  box.hidden=false;box.scrollIntoView({behavior:"smooth",block:"start"});
+  document.getElementById("copybtn").onclick=async()=>{const t=document.getElementById("changetext");try{await navigator.clipboard.writeText(t.value);document.getElementById("copymsg").textContent="Copied. Now paste it into a reply to the Hunt Board email.";}catch(e){t.focus();t.select();document.getElementById("copymsg").textContent="Press Ctrl+C (or Copy) to copy the selected text.";}};
+}
+async function saveFile(){
+  const msg=document.getElementById("savemsg"), btn=document.getElementById("savebtn");
+  if(!window.showSaveFilePicker){
+    const blob=new Blob([serialize()],{type:"text/html"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Hunt Board.html";a.click();
+    msg.textContent="Downloaded a new Hunt Board.html. Move it into the Marktplaats Scout V3 folder and replace the old one.";dirty=false;return;
+  }
+  btn.disabled=true;
+  try{
+    if(!fileHandle)fileHandle=await idbGet();
+    if(fileHandle&&(await fileHandle.queryPermission({mode:"readwrite"}))!=="granted"){if((await fileHandle.requestPermission({mode:"readwrite"}))!=="granted")fileHandle=null;}
+    if(!fileHandle){fileHandle=await window.showSaveFilePicker({suggestedName:"Hunt Board.html",types:[{description:"Hunt Board",accept:{"text/html":[".html"]}}]});await idbSet(fileHandle);}
+    // keep the scout's newest results if it ran after this page was opened
+    try{const txt=await (await fileHandle.getFile()).text();const m=txt.match(/<script id="board" type="application\/json">([\s\S]*?)<\/script>/);
+      if(m){const disk=JSON.parse(m[1]);if((disk.updated||"")>(BOARD.updated||"")){BOARD.results=disk.results||{};BOARD.updated=disk.updated;for(const id in disk.hunts){if(BOARD.hunts[id]&&disk.hunts[id].route&&disk.hunts[id].route.pts&&BOARD.hunts[id].route&&!BOARD.hunts[id].route.pts)BOARD.hunts[id].route.pts=disk.hunts[id].route.pts;}}}}catch(e){}
+    const w=await fileHandle.createWritable();await w.write(serialize());await w.close();
+    dirty=false;msg.textContent="Saved. The scout uses these settings at the next 12:00 scan.";setTimeout(()=>{if(!dirty)document.getElementById("savebar").hidden=true;},2500);render();
+  }catch(e){if(e&&e.name==="AbortError"){msg.textContent="Not saved. Pick the Hunt Board.html in your Marktplaats Scout V3 folder to save.";}else{msg.textContent="Couldn't save ("+(e&&e.message||e)+"). Try again, or use a Chromium browser like Edge or Chrome.";}}
+  btn.disabled=false;
+}
+document.getElementById("savebtn").disabled=false;
+document.getElementById("savebtn").onclick=()=>SHARE?showSend():saveFile();
+window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}});
+
+/* ---------- render ---------- */
+function orderedIds(){return Object.keys(BOARD.hunts).sort((a,b)=>(BOARD.hunts[a].order??99)-(BOARD.hunts[b].order??99));}
+function budgetOf(id){return (BOARD.budgets||[]).find(b=>(b.hunts||[]).includes(id))||null;}
+function ordered(b){return [...b.hunts].filter(x=>BOARD.hunts[x]).sort((a,c)=>(BOARD.hunts[a].order??0)-(BOARD.hunts[c].order??0));}
+function partners(b,id){return b?(b.hunts||[]).filter(x=>x!==id&&BOARD.hunts[x]):[];}
+function combosFor(b){
+  const [h1,h2]=ordered(b), A=((BOARD.results[h1]||{}).deals||[]).filter(d=>d.status!=="gone"&&d.status!=="sold"&&d.priceNum!=null), B=((BOARD.results[h2]||{}).deals||[]).filter(d=>d.status!=="gone"&&d.status!=="sold"&&d.priceNum!=null);
+  const out=[];
+  A.filter(d=>d.isSet&&d.priceNum<=b.max).forEach(d=>out.push({a:d,b:null,total:d.priceNum,fit:(d.fit||0)*2}));
+  B.filter(d=>d.isSet&&d.priceNum<=b.max).forEach(d=>out.push({a:null,b:d,total:d.priceNum,fit:(d.fit||0)*2}));
+  A.filter(d=>!d.isSet).forEach(x=>B.filter(d=>!d.isSet).forEach(y=>{const t=x.priceNum+y.priceNum;if(t<=b.max)out.push({a:x,b:y,total:t,fit:(x.fit||0)+(y.fit||0)});}));
+  return out.sort((p,q)=>q.fit-p.fit||p.total-q.total).slice(0,6);
+}
+function combosHTML(id){
+  const b=budgetOf(id);if(!b||ordered(b).length<2)return "";
+  const hs=ordered(b);const names=hs.map(x=>esc((BOARD.hunts[x]||{}).name||x)).join(" + ");
+  const have=b.hunts.every(x=>BOARD.results[x]);
+  const list=have?combosFor(b):[];
+  const part=(d,hid)=>d?`<div class="part"><span class="sub">${esc(BOARD.hunts[hid].name)}</span><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)} ↗</a><span class="sub num">${esc(d.price)} · ${esc(d.city||"")}</span></div>`:`<div class="part"><span class="sub">${esc(BOARD.hunts[hid].name)}</span><span>Included in the set</span></div>`;
+  return `<div class="section"><h2>${names} within ${eur(b.max)}</h2>${!have?`<div class="note">Combinations appear once both hunts have been scanned.</div>`:list.length?`<div style="display:grid;gap:10px">${list.map(c=>`<div class="combo">${part(c.a,hs[0])}<span class="plus">+</span>${part(c.b,hs[1])}<div class="total">${eur(c.total)}<small>${eur(b.max-c.total)} left</small></div></div>`).join("")}</div><div class="sub">Best-matching pairs first. Bid prices count at the asking price.</div>`:`<div class="note">No pair on the boards fits within ${eur(b.max)} yet.</div>`}</div>`;
+}
+function pickDefault(){let p=null;try{p=localStorage.getItem("mhb.sel");}catch(e){}return p&&BOARD.hunts[p]?p:orderedIds()[0]||null;}
+function select(id){sel=id;editing=null;confirmDel=false;view="all";sortBy=null;try{localStorage.setItem("mhb.sel",id);}catch(e){}render();}
+function newCount(id){const R=BOARD.results[id];return R&&R.deals?R.deals.filter(d=>{const f=life(d,R);return f.isNew&&f.st!=="gone";}).length:0;}
+function render(){
+  const act=Object.values(BOARD.hunts).filter(h=>h.active).length;
+  document.getElementById("schedule").innerHTML=`<span class="dot ${act?"on":""}"></span><span>${act?`${act} hunt${act===1?"":"s"} scanned daily at 12:00`:"No hunts switched on yet"}${BOARD.updated?` · last scan ${esc(fmtDate(BOARD.updated))}`:""}</span>`;
+  const tabs=document.getElementById("tabs");
+  tabs.innerHTML=orderedIds().map(id=>{const h=BOARD.hunts[id],n=newCount(id);
+    return `<button class="tab" role="tab" aria-selected="${id===sel&&editing!=="new"}" data-id="${esc(id)}"><span class="dot ${h.active?"on":""}"></span>${esc(h.name||id)}${h.area==="route"?`<span class="kind">· route</span>`:""}${n?`<span class="count">${n} new</span>`:""}</button>`;}).join("")+`<button class="tab add" data-new="1">+ New hunt</button>`;
+  tabs.onclick=e=>{const b=e.target.closest(".tab");if(!b)return;if(b.dataset.new){editing="new";confirmDel=false;render();return;}select(b.dataset.id);};
+  const main=document.getElementById("main");
+  if(editing){main.innerHTML=formHTML(editing==="new"?null:BOARD.hunts[editing]);wireForm();return;}
+  if(!sel||!BOARD.hunts[sel])sel=pickDefault();
+  if(!sel){main.innerHTML=`<div class="empty"><h2>No hunts yet</h2><div class="sub">Start one for anything you want second-hand: a couch, a bike, a camera.</div><button class="btn primary" id="first">Start a hunt</button></div>`;document.getElementById("first").onclick=()=>{editing="new";render();};return;}
+  main.innerHTML=huntHTML(sel);wireHunt(sel);queueImages(main);
+}
+
+function critPills(h,id){
+  const p=[],add=(k,v)=>p.push(`<span class="pill"><b>${k}</b>${esc(v)}</span>`);
+  if(h.product)add("Looking for",h.product);
+  if(h.category){const c=CATEGORIES.find(c=>c[0]===h.category);add("Category",c?c[1].split(" › ").pop():h.category);}
+  if(h.keywords)add("Search words",h.keywords);
+  if(h.keywordsNl&&h.keywordsNl!==h.keywords)add("Searching in Dutch",h.keywordsNl);
+  if(h.area==="route"){add("Route",`${h.route.from||"?"} → ${h.route.to||"?"}`);add("Max detour",`${h.route.detourKm||10} km`);if(h.route.moveDate)add("Moving day",fmtDate(h.route.moveDate));}
+  else{add("From",[h.street,h.postcode,h.city].filter(Boolean).join(", ")||"no address yet");add("Distance",h.maxKm?`within ${h.maxKm} km`:"anywhere in NL");}
+  add("Transport",TRANSPORT[h.transport||"car"]);
+  add("Shipping",h.shippingOk?"fine too":"no");
+  add("Free pickups",h.includeFree!==false?"yes, quality-checked":"no");
+  if(h.priceMin!=null||h.priceMax!=null)add("Price",`${h.priceMin!=null?eur(h.priceMin):"€0"} – ${h.priceMax!=null?eur(h.priceMax):"any"}`);
+  if(h.yearFrom||h.yearTo)add("Year",`${h.yearFrom||"any"} – ${h.yearTo||"now"}`);
+  if(h.conditions&&h.conditions.length<3)add("Condition",h.conditions.join(", "));
+  const bg=budgetOf(id);if(bg){const ps=partners(bg,id);if(ps.length)add("Shared budget",`${eur(bg.max)} together with ${ps.map(x=>BOARD.hunts[x].name).join(", ")}`);}
+  return p.join("");
+}
+function readyProblem(h){
+  if(!h.product)return "Say what you're looking for.";
+  if(h.area==="route"){if(!h.route||!h.route.from||!h.route.to)return "Add where the route starts and ends.";}
+  else if(!h.postcode)return "Add the pickup address.";
+  return null;
+}
+
+function routeStrip(h,R,list){
+  const P=routePts(h);
+  const from=esc(h.route.from||"Start"), to=esc(h.route.to||"End");
+  if(!P)return `<div class="routebox"><div class="rhead"><h3>${from} → ${to}</h3><span class="sub">The route line appears after the next scan works out the road.</span></div></div>`;
+  const W=1000,x0=60,x1=940,y=62;
+  const items=list.map((d,i)=>({d,i,r:onRoute(h,d)})).filter(o=>o.r);
+  const maxD=h.route.detourKm||10;
+  const lanes=Array(8).fill(-99);
+  const pins=items.sort((a,b)=>a.r.along-b.r.along).map(o=>{
+    const x=x0+(x1-x0)*o.r.along;let lift=lanes.findIndex(l=>x-l>=21);if(lift<0)lift=lanes.indexOf(Math.min(...lanes));lanes[lift]=x;
+    const py=y-18-lift*19, f=life(o.d,R);
+    return `<g class="pin ${o.d.free?"free":f.isNew&&f.st!=="gone"?"isnew":""} ${f.st!=="active"?"off":""}" data-id="${esc(o.d.id)}" tabindex="0"><title>${esc(o.d.title)} · ${esc(o.d.price||"")} · ${esc(o.d.city||"")} · +${o.r.detourKm.toFixed(1)} km detour</title><line class="stem" x1="${x}" y1="${py}" x2="${x}" y2="${y}"/><circle cx="${x}" cy="${py}" r="9.5"/><text x="${x}" y="${py+3.2}" text-anchor="middle">${o.d._n}</text></g>`;}).join("");
+  const tot=items[0]?items[0].r.totalKm:onRoute(h,{lat:P[0].lat,lon:P[0].lon}).totalKm;
+  const ticks=[0.25,0.5,0.75].map(f=>`<text x="${x0+(x1-x0)*f}" y="${y+26}" text-anchor="middle">${Math.round(tot*f)} km</text>`).join("");
+  return `<div class="routebox"><div class="rhead"><h3>${from} → ${to}</h3><span class="sub num">about ${Math.round(tot)} km by road · matches within ${maxD} km detour, numbered as on the cards${h.route.moveDate?` · moving day ${esc(fmtDate(h.route.moveDate))}`:""}</span></div>
+    <svg class="routesvg" viewBox="0 -100 ${W} 200" role="img" aria-label="Matches along the route from ${from} to ${to}">
+      <line class="road" x1="${x0}" y1="${y}" x2="${x1}" y2="${y}"/>
+      <circle class="end" cx="${x0}" cy="${y}" r="7"/><circle class="end" cx="${x1}" cy="${y}" r="7"/>
+      <text class="endl" x="${x0}" y="${y+26}" text-anchor="middle">${from}</text><text class="endl" x="${x1}" y="${y+26}" text-anchor="middle">${to}</text>
+      ${ticks}${pins}
+    </svg></div>`;
+}
+
+function huntHTML(id){
+  const h=BOARD.hunts[id], R=BOARD.results[id], deals=(R&&R.deals)||[];
+  const prob=readyProblem(h);
+  const status=!h.active?`<div class="banner">${prob?`This hunt is a draft. ${prob} Then switch on the daily scan and save.`:"This hunt is paused. Switch on the daily scan in Edit hunt and save to include it at 12:00."}</div>`:"";
+  const runLine=R?`<div class="runline num"><span>Last scan ${esc(fmtDate(R.date))}${R.runAt?` at ${esc(new Date(R.runAt).toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Amsterdam"}))}`:""}</span>${R.fuel?`<span>Euro95 €${Number(R.fuel.euro95).toFixed(2)} · LPG €${Number(R.fuel.lpg).toFixed(2)} per litre</span>`:""}</div>`:"";
+  if(!sortBy)sortBy=h.area==="route"?"route":"fit";
+  const paid=deals.filter(d=>!d.free), free=deals.filter(d=>d.free);
+  sortList(paid.filter(d=>life(d,R).st!=="gone"),R,h,"fit").forEach((d,i)=>d._n=i+1);sortList(free.filter(d=>life(d,R).st!=="gone"),R,h,"fit").forEach((d,i)=>d._n="F"+(i+1));deals.filter(d=>life(d,R).st==="gone").forEach(d=>d._n="–");
+  let body="";
+  if(!R){
+    body=`<div class="empty" style="margin-top:14px"><h3>No scan yet</h3><div class="sub">${h.active?"Results land here after the next 12:00 scan.":"Results appear once the hunt is switched on, saved, and the 12:00 scan has run."}</div></div>${combosHTML(id)}`;
+  } else {
+    const nNew=deals.filter(d=>{const f=life(d,R);return f.isNew&&f.st!=="gone";}).length, nAtt=deals.filter(d=>life(d,R).attention).length, s=R.stats||{};
+    const sorts=[...(h.area==="route"?[["route","Route order (Rotterdam first)"]]:[]),["fit","Best match"],["saving","Biggest saving"],["price","Lowest price"],[h.area==="route"?"detour":"distance",h.area==="route"?"Smallest detour":"Closest"],["newest","Newest listing"],["expiring","Expiring soonest"]];
+    if(h.area==="route")sorts[0][1]=`Route order (${h.route.from||"start"} first)`;
+    body=`${h.area==="route"?routeStrip(h,R,deals):""}
+    <div class="stats">
+      <div class="stat hl"><b>${nNew}</b><span>new today</span></div>
+      <div class="stat ${nAtt?"alert":""}"><b>${nAtt}</b><span>need attention</span></div>
+      <div class="stat"><b>${paid.filter(d=>life(d,R).st!=="gone").length}</b><span>deals on the board</span></div>
+      <div class="stat free"><b>${free.filter(d=>life(d,R).st!=="gone").length}</b><span>free, still good</span></div>
+      <div class="stat"><b>${s.scanned??"—"}</b><span>listings read</span></div>
+      <div class="stat"><b>${s.inRange??"—"}</b><span>${h.area==="route"?"along the route":"within your limits"}</span></div>
+      <div class="stat"><b>${(R.flags||[]).length}</b><span>risk flags</span></div>
+    </div>
+    <div class="toolbar" id="toolbar">
+      ${[["all","All"],["new","New today"],["earlier","Earlier finds"],["attention","Needs attention"]].map(([v,l])=>`<button class="chip" type="button" aria-pressed="${view===v}" data-v="${v}">${l}</button>`).join("")}
+      <span class="spacer"></span><label class="sub" for="sort">Sort</label>
+      <select class="small" id="sort">${sorts.map(([v,l])=>`<option value="${v}" ${v===sortBy?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    </div>
+    <div class="grid" id="grid">${cardsHTML(paid,R,h)}</div>
+    ${h.includeFree!==false?`<div class="section"><div class="freehead"><h2>Free to pick up, still good quality</h2><span class="sub">Checked on photos and description: no heavy wear, stains or sagging.</span></div><div class="grid" id="gridFree">${free.length?cardsHTML(free,R,h):`<div class="note">No free listings passed the quality check yet.</div>`}</div></div>`:""}
+    ${R.market&&R.market.n?`<div class="section"><h2>Going price</h2><div class="note"><div class="range" style="max-width:520px">${rangeBar(R.market,null)}</div><div class="sub" style="margin-top:8px">${esc(R.market.label||"Similar listings")}: ${R.market.n} private asking prices. Middle half between ${eur(R.market.q1)} and ${eur(R.market.q3)}, median ${eur(R.market.med)}. Asking prices run above what things actually sell for.</div></div></div>`:""}
+    ${(R.flags||[]).length?`<div class="section"><h2>Scam and risk flags</h2><div class="tablewrap"><table><tr><th>Listing</th><th>Price</th><th>Why flagged</th></tr>${R.flags.map(f=>`<tr><td><a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)} ↗</a><br><span class="sub">${esc(f.city||"")}</span></td><td class="num">${esc(f.price||"")}</td><td><span class="lvl ${f.level==="bad"?"bad":"warn"}">${f.level==="bad"?"High risk":"Caution"}</span> ${esc(f.reason)}</td></tr>`).join("")}</table></div></div>`:""}
+    ${combosHTML(id)}
+    <div class="section"><h2>Scan notes</h2><div class="note">${esc(R.notes||"No notes from this scan.")}</div></div>`;
+  }
+  return `<section class="brief">
+    <div class="brief-head"><div style="display:grid;gap:4px"><h2>${esc(h.name)}</h2>${runLine}</div><button class="btn ghost" type="button" id="edit">Edit hunt</button></div>
+    <div class="crit">${critPills(h,id)}</div>
+    ${h.wishes?`<div class="wishes">${esc(h.wishes)}</div>`:""}${SHARE?(!h.active?`<div class="banner">This hunt isn't being scanned yet.</div>`:""):status}
+  </section>${body}`;
+}
+
+function rangeBar(m,price){
+  if(!m||m.q1==null||m.q3==null)return "";
+  const hi=Math.max(m.q3*1.6,price||0,m.med*2)||1,pos=v=>Math.max(0,Math.min(100,v/hi*100));
+  return `<div class="track" aria-hidden="true"><span class="bandr" style="left:${pos(m.q1)}%;width:${pos(m.q3)-pos(m.q1)}%"></span><span class="med" style="left:${pos(m.med)}%"></span>${price!=null?`<span class="me" style="left:${pos(price)}%"></span>`:""}</div><small><span>€0</span><span>typical ${eur(m.q1)}–${eur(m.q3)}</span><span>${eur(hi)}</span></small>`;
+}
+function sortList(list,R,h,by){
+  const g=d=>life(d,R).st==="gone"?1:0, rt=d=>onRoute(h,d);
+  const fns={
+    fit:(a,b)=>(b.fit||0)-(a.fit||0)||(b.saving||0)-(a.saving||0),
+    saving:(a,b)=>(b.saving??-1e9)-(a.saving??-1e9),
+    price:(a,b)=>(a.priceNum??1e9)-(b.priceNum??1e9),
+    distance:(a,b)=>(kmFromHome(a,R)??1e9)-(kmFromHome(b,R)??1e9),
+    detour:(a,b)=>((rt(a)||{}).detourKm??1e9)-((rt(b)||{}).detourKm??1e9),
+    route:(a,b)=>((rt(a)||{}).along??2)-((rt(b)||{}).along??2),
+    newest:(a,b)=>String(b.since||b.found||"").localeCompare(String(a.since||a.found||"")),
+    expiring:(a,b)=>(life(a,R).left??99)-(life(b,R).left??99)
+  };
+  return list.slice().sort((a,b)=>g(a)-g(b)||(fns[by]||fns.fit)(a,b));
+}
+function cardsHTML(deals,R,h){
+  const list=sortList(deals.filter(d=>{const f=life(d,R);
+    if(view==="new")return f.isNew&&f.st!=="gone";if(view==="earlier")return !f.isNew&&f.st!=="gone";if(view==="attention")return f.attention;return true;}),R,h,sortBy);
+  if(!list.length)return `<div class="note">${deals.length?"Nothing here for this filter.":"No matches yet. The scout keeps looking every day at 12:00."}</div>`;
+  return list.map(d=>card(d,R,h)).join("");
+}
+function logistics(d,R,h){
+  const s=d.ship||{}, tr=h.transport||"car";let pick;
+  if(s.method==="ship")pick=`<div class="lg na"><b>No pickup</b>seller only ships</div>`;
+  else if(h.area==="route"){
+    const r=onRoute(h,d);
+    pick=r?`<div class="lg route"><b>+${r.detourKm.toFixed(0)} km · +${fmtMin(driveMin(r.detourKm)+STOP_MIN)}</b>detour on the way, ${Math.round(r.along*100)}% along</div>`:`<div class="lg"><b>On the route</b>detour unknown</div>`;
+  } else {
+    const km=kmFromHome(d,R);
+    if(km==null)pick=`<div class="lg"><b>Pickup</b>distance unknown</div>`;
+    else if(tr==="none")pick=`<div class="lg"><b>Pickup · ${Math.round(km)} km</b>no car on this hunt</div>`;
+    else{const road=km*ROAD,rt=road*2,min=driveMin(road)*2+5;
+      const perKm=R.fuel&&tr==="car"?((PETROL_L100/100*R.fuel.euro95)+(LPG_L100/100*R.fuel.lpg))/2:null;
+      pick=`<div class="lg"><b>${tr==="van"?"🚚":"🚗"} ${fmtMin(min)}${perKm?` · €${(rt*perKm).toFixed(2).replace(".",",")}`:""}</b>round trip, ${Math.round(rt)} km</div>`;}
+  }
+  const canShip=(s.method==="both"||s.method==="ship")&&s.protection;
+  const ship=canShip?`<div class="lg ship"><b>📦 ${s.from!=null?"from €"+Number(s.from).toFixed(2).replace(".",","):"Can be shipped"}</b>with buyer protection</div>`
+    :(s.method==="both"||s.method==="ship")?`<div class="lg na"><b>Ships, no protection</b>pick it up instead</div>`:`<div class="lg na"><b>Pickup only</b>seller won't ship</div>`;
+  return `<div class="logi">${pick}${ship}</div>`;
+}
+function card(d,R,h){
+  const f=life(d,R), km=h.area==="route"?null:kmFromHome(d,R);
+  const b=[...(d.free?[`<span class="badge free">Free</span>`]:[]),f.isNew&&f.st!=="gone"?`<span class="badge new">New today</span>`:`<span class="badge old">Found ${esc(fmtDate(d.found))}</span>`];
+  if(f.st==="reserved")b.push(`<span class="badge warn">Reserved</span>`);
+  if(f.st==="gone")b.push(`<span class="badge bad">Gone</span>`);
+  if(f.st==="sold")b.push(`<span class="badge bad">Sold</span>`);
+  if(f.st==="active"&&f.left!=null&&f.left<=3)b.push(`<span class="badge bad">Expiring</span>`);
+  const m=d.typical||R.market;
+  const saving=d.saving!=null?`<span class="saving ${d.saving<0?"neg":""}">${d.saving>=0?`~${eur(d.saving)} under typical`:`~${eur(-d.saving)} over typical`}</span>`:"";
+  const meta=[d.city?`📍 ${esc(d.city)}${km!=null?` · ${Math.round(km)} km`:""}`:"",d.condition?esc(d.condition):"",d.year?`from ${esc(d.year)}`:"",d.dims?esc(d.dims):""].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
+  return `<article class="card ${f.isNew&&f.st!=="gone"?"isnew":""} ${f.st==="gone"?"gone":""}" id="c-${esc(d.id)}">
+    <a class="photo" href="${esc(d.url)}" target="_blank" rel="noopener">${imgTag(d.image)}<span class="num-badge">#${d._n}</span><span class="badges">${b.join("")}</span></a>
+    <div class="cbody">
+      ${d.fit!=null?`<span class="fit" title="How well it matches your wishes">match<span class="fitbar"><i style="width:${Math.max(0,Math.min(100,d.fit))}%"></i></span>${Math.round(d.fit)}/100</span>`:""}
+      <a class="title" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>
+      <div class="priceRow"><span class="price">${esc(d.price||eur(d.priceNum))}</span>${f.dropped?`<span class="was">${eur(d.prevPrice)}</span>`:""}${saving}</div>
+      ${m&&d.priceNum!=null?`<div class="range">${rangeBar(m,d.priceNum)}</div>`:""}
+      <div class="meta">${meta}</div>
+      ${f.txt?`<div class="life ${f.cls}">🕒 ${esc(f.txt)}</div>`:""}
+      ${logistics(d,R,h)}
+      ${d.why?`<div class="why">${esc(d.why)}</div>`:""}
+      ${d.unsure?`<div class="unsure">Unsure: ${esc(d.unsure)}</div>`:""}
+      ${(d.flags||[]).length?`<div class="tags">${d.flags.map(x=>`<span class="tag">⚠ ${esc(x)}</span>`).join("")}</div>`:""}
+      <a class="btn ${f.st==="gone"?"ghost":"primary"}" href="${esc(d.url)}" target="_blank" rel="noopener">${f.st==="gone"?"Listing removed":"Open on Marktplaats ↗"}</a>
+    </div></article>`;
+}
+function wireHunt(id){
+  document.getElementById("edit").onclick=()=>{editing=id;confirmDel=false;render();};
+  const tb=document.getElementById("toolbar");if(!tb)return;
+  const R=BOARD.results[id],h=BOARD.hunts[id],redraw=()=>{const g=document.getElementById("grid");g.innerHTML=cardsHTML((R.deals||[]).filter(d=>!d.free),R,h);queueImages(g);const gf=document.getElementById("gridFree");if(gf){const fl=(R.deals||[]).filter(d=>d.free);gf.innerHTML=fl.length?cardsHTML(fl,R,h):`<div class="note">No free listings passed the quality check yet.</div>`;queueImages(gf);}};
+  tb.onclick=e=>{const b=e.target.closest(".chip");if(!b)return;view=b.dataset.v;tb.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b));redraw();};
+  document.getElementById("sort").onchange=e=>{sortBy=e.target.value;redraw();};
+  document.querySelectorAll(".routesvg .pin").forEach(p=>{const go=()=>{view="all";const el=document.getElementById("c-"+p.dataset.id);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600);}};p.onclick=go;p.onkeydown=e=>{if(e.key==="Enter")go();};});
+}
+
+/* ---------- editor ---------- */
+function formHTML(h){
+  const isNew=!h;
+  h=h||{area:"radius",transport:"car",shippingOk:true,conditions:CONDITIONS.slice(),maxKm:25,active:true,route:{detourKm:10}};
+  const r=h.route||{detourKm:10}, v=x=>x==null?"":esc(x), conds=h.conditions||CONDITIONS;
+  return `<form class="editor" id="form" novalidate>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline"><h2>${isNew?"New hunt":"Edit hunt"}</h2><span class="sub">${SHARE?"After Apply, press Send changes to Marijn at the top.":"After changing, press Save to write it into the file."}</span></div>
+    <fieldset><legend>What you're hunting</legend>
+      <div class="row">
+        <div class="field"><label for="f-name">Name of this hunt</label><input type="text" id="f-name" value="${v(h.name)}" placeholder="Couch for the living room" maxlength="60"></div>
+        <div class="field"><label for="f-product">Product</label><input type="text" id="f-product" value="${v(h.product)}" placeholder="Couch / sofa, 3-seater" maxlength="120"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="f-cat">Marktplaats category</label><select class="inp" id="f-cat">${CATEGORIES.map(([s,l])=>`<option value="${esc(s)}" ${s===(h.category||"")?"selected":""}>${esc(l)}</option>`).join("")}</select></div>
+        <div class="field"><label for="f-kw">Search words <span class="hint">(optional, comma-separated)</span></label><input type="text" id="f-kw" value="${v(h.keywords)}" placeholder="corner sofa, 3-seater (or hoekbank, 3-zits bank)"><span class="hint">English or Dutch both work. The scout translates to Dutch and adds common synonyms, because sellers write in Dutch.</span></div>
+      </div>
+    </fieldset>
+    <fieldset><legend>Where<span>around one address, or anywhere along a drive</span></legend>
+      <div class="seg" role="radiogroup">
+        <label><input type="radio" name="area" id="f-area-radius" value="radius" ${h.area!=="route"?"checked":""}><span><b>Around an address</b><small>Everything within a distance of one place.</small></span></label>
+        <label><input type="radio" name="area" id="f-area-route" value="route" ${h.area==="route"?"checked":""}><span><b>Along a route</b><small>Pick it up on the way, e.g. on moving day.</small></span></label>
+      </div>
+      <div id="radius-fields" ${h.area==="route"?"hidden":""} style="display:grid;gap:12px">
+        <div class="row">
+          <div class="field"><label for="f-street">Street and number</label><input type="text" id="f-street" value="${v(h.street)}" placeholder="Oudegracht 1"></div>
+          <div class="field"><label for="f-pc">Postcode</label><input type="text" id="f-pc" value="${v(h.postcode)}" placeholder="3511 AA" maxlength="7"></div>
+          <div class="field"><label for="f-city">Town</label><input type="text" id="f-city" value="${v(h.city)}" placeholder="Utrecht"></div>
+        </div>
+        <div class="field"><label for="f-km">Maximum distance: <span id="kmout" class="num">${h.maxKm?h.maxKm+" km":"anywhere in NL"}</span></label><input type="range" id="f-km" min="5" max="205" step="5" value="${h.maxKm||205}"><span class="hint">Slide all the way right for the whole country.</span></div>
+      </div>
+      <div id="route-fields" ${h.area!=="route"?"hidden":""} style="display:grid;gap:12px">
+        <div class="row">
+          <div class="field"><label for="f-from">Start (address, postcode or town)</label><input type="text" id="f-from" value="${v(r.from)}" placeholder="Coolsingel 40, Rotterdam"></div>
+          <div class="field"><label for="f-to">End (address, postcode or town)</label><input type="text" id="f-to" value="${v(r.to)}" placeholder="Dam 1, Amsterdam"></div>
+          <div class="field"><label for="f-move">Moving day <span class="hint">(optional)</span></label><input type="date" id="f-move" value="${v(r.moveDate)}"><span class="hint">Sellers can be asked to hold it until then.</span></div>
+        </div>
+        <div class="field"><label for="f-detour">Maximum detour: <span id="detout" class="num">${r.detourKm||10} km extra driving</span></label><input type="range" id="f-detour" min="2" max="40" step="1" value="${r.detourKm||10}"><span class="hint">Extra kilometres the pickup adds to the drive, compared with driving straight through.</span></div>
+      </div>
+      <div class="field"><span class="lbl">Transport</span><div class="seg" role="radiogroup">
+        ${Object.entries(TRANSPORT).map(([k,l])=>`<label><input type="radio" name="tr" id="f-tr-${k}" value="${k}" ${(h.transport||"car")===k?"checked":""}><span><b>${esc(l)}</b><small>${k==="car"?"Shows drive time and fuel cost.":k==="van"?"Big items fit; shows drive time.":"Only shipped or very close listings."}</small></span></label>`).join("")}
+      </div></div>
+      <label class="toggle"><input type="checkbox" id="f-ship" ${h.shippingOk?"checked":""}><span><b>Shipping is fine too</b><small>Only listings shipped with Marktplaats buyer protection, from any distance.</small></span></label>
+    </fieldset>
+    <fieldset><legend>Limits<span>leave empty for no limit</span></legend>
+      <div class="row">
+        <div class="field"><label for="f-pmin">Lowest price (€)</label><input type="number" id="f-pmin" min="0" step="5" value="${v(h.priceMin)}" placeholder="0"></div>
+        <div class="field"><label for="f-pmax">Highest price (€)</label><input type="number" id="f-pmax" min="0" step="5" value="${v(h.priceMax)}" placeholder="no limit"></div>
+        <div class="field"><label for="f-yfrom">Made or bought from year</label><input type="number" id="f-yfrom" min="1800" max="2100" value="${v(h.yearFrom)}" placeholder="any"></div>
+        <div class="field"><label for="f-yto">Up to year</label><input type="number" id="f-yto" min="1800" max="2100" value="${v(h.yearTo)}" placeholder="now"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="f-bwith">Share a budget with</label><select class="inp" id="f-bwith"><option value="">No shared budget</option>${orderedIds().filter(x=>x!==editing).map(x=>`<option value="${esc(x)}" ${editing!=="new"&&budgetOf(editing)&&budgetOf(editing).hunts.includes(x)?"selected":""}>${esc(BOARD.hunts[x].name)}</option>`).join("")}</select><span class="hint">For things bought together, like a table and chairs.</span></div>
+        <div class="field"><label for="f-bmax">Together at most (€)</label><input type="number" id="f-bmax" min="0" step="5" value="${editing!=="new"&&budgetOf(editing)?budgetOf(editing).max:""}" placeholder="e.g. 400"></div>
+      </div>
+      <div class="field"><span class="lbl">Condition</span><div class="checks">${CONDITIONS.map((c,i)=>`<label><input type="checkbox" id="f-cond${i}" ${conds.includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div></div>
+    </fieldset>
+    <fieldset><legend>Your specific wishes<span>the scout reads every listing against these</span></legend>
+      <div class="field"><label for="f-wishes" class="hint" style="font-weight:400">Sizes, colours, materials, brands, must-haves and deal-breakers. Write it the way you'd tell a friend.</label><textarea id="f-wishes" placeholder="At most 220 cm wide and 95 cm deep. Light fabric, no leather. Removable covers would be great. No pets or smoke.">${v(h.wishes)}</textarea></div>
+    </fieldset>
+    <label class="toggle"><input type="checkbox" id="f-free" ${h.includeFree!==false?"checked":""}><span><b>Include free pickups ("gratis ophalen")</b><small>Only ones that still look good quality on the photos and in the description. They get their own section.</small></span></label>
+    <label class="toggle"><input type="checkbox" id="f-active" ${h.active?"checked":""}><span><b>Scan every day at 12:00</b><small>Switch off to pause the hunt and keep its results.</small></span></label>
+    <div class="formfoot">
+      <button type="submit" class="btn primary" id="save">Apply</button>
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <span class="err" id="ferr" role="alert"></span><span class="spacer"></span>
+      ${!isNew&&!SHARE?(confirmDel?`<span class="confirm">Delete this hunt and its results? <button type="button" class="btn danger" id="delyes">Delete</button><button type="button" class="btn ghost" id="delno">Keep it</button></span>`:`<button type="button" class="btn danger" id="del">Delete hunt</button>`):""}
+    </div>
+  </form>`;
+}
+function wireForm(){
+  const $=id=>document.getElementById(id);
+  $("f-km").oninput=e=>{const k=+e.target.value;$("kmout").textContent=k>200?"anywhere in NL":k+" km";};
+  $("f-detour").oninput=e=>{$("detout").textContent=e.target.value+" km extra driving";};
+  document.querySelectorAll('input[name=area]').forEach(r=>r.onchange=()=>{const route=$("f-area-route").checked;$("route-fields").hidden=!route;$("radius-fields").hidden=route;});
+  $("cancel").onclick=()=>{editing=null;confirmDel=false;render();};
+  if($("del"))$("del").onclick=()=>{confirmDel=true;render();};
+  if($("delno"))$("delno").onclick=()=>{confirmDel=false;render();};
+  if($("delyes"))$("delyes").onclick=()=>{BOARD.budgets=(BOARD.budgets||[]).map(b=>({...b,hunts:b.hunts.filter(x=>x!==editing)})).filter(b=>b.hunts.length>1);delete BOARD.hunts[editing];delete BOARD.results[editing];editing=null;confirmDel=false;sel=null;markDirty();render();};
+  $("form").onsubmit=e=>{
+    e.preventDefault();
+    const num=id=>{const x=$(id).value.trim();return x===""?null:Number(x);};
+    const km=+$("f-km").value, area=$("f-area-route").checked?"route":"radius";
+    const old=editing!=="new"?BOARD.hunts[editing]:null;
+    const from=$("f-from").value.trim(), to=$("f-to").value.trim();
+    const oldR=(old&&old.route)||{};
+    const route={from,to,detourKm:+$("f-detour").value,moveDate:$("f-move").value||null};
+    if(oldR.pts&&oldR.from===from&&oldR.to===to){route.pts=oldR.pts;}
+    const data={
+      name:$("f-name").value.trim(),product:$("f-product").value.trim(),category:$("f-cat").value,keywords:$("f-kw").value.trim(),
+      area,street:$("f-street").value.trim(),postcode:$("f-pc").value.trim().toUpperCase(),city:$("f-city").value.trim(),maxKm:km>200?null:km,route,
+      transport:(document.querySelector('input[name=tr]:checked')||{}).value||"car",shippingOk:$("f-ship").checked,
+      priceMin:num("f-pmin"),priceMax:num("f-pmax"),yearFrom:num("f-yfrom"),yearTo:num("f-yto"),
+      conditions:CONDITIONS.filter((c,i)=>$("f-cond"+i).checked),includeFree:$("f-free").checked,keywordsNl:(old&&old.keywords===$("f-kw").value.trim())?(old.keywordsNl||""):"",wishes:$("f-wishes").value.trim(),active:$("f-active").checked,updatedAt:new Date().toISOString()
+    };
+    const err=m=>{$("ferr").textContent=m;};
+    if(!data.name)return err("Give the hunt a name.");
+    const p=readyProblem(data);
+    if(data.postcode&&!PC_RE.test(data.postcode))return err("Postcode should look like 3511 AA.");
+    if(data.active&&p)return err(p+" Or switch off the daily scan to keep it as a draft.");
+    if(data.priceMin!=null&&data.priceMax!=null&&data.priceMin>data.priceMax)return err("The lowest price is higher than the highest price.");
+    if(!data.conditions.length)return err("Pick at least one condition.");
+    let id=editing;
+    if(id==="new"){const base=slug(data.name);let n=2;id=base;while(BOARD.hunts[id])id=base+"-"+n++;data.createdAt=data.updatedAt;data.order=Object.keys(BOARD.hunts).length;}
+    else{data.createdAt=old.createdAt||data.updatedAt;data.order=old.order??0;}
+    const bwith=$("f-bwith").value, bmax=num("f-bmax");
+    if(bwith&&bmax==null)return err("Enter the combined maximum, or choose no shared budget.");
+    const cur=(BOARD.budgets||[]).find(b=>b.hunts.includes(id));
+    if(cur&&bwith&&cur.hunts.includes(bwith)){cur.max=bmax;if(data.priceMax==null||data.priceMax>bmax)data.priceMax=bmax;}
+    else{BOARD.budgets=(BOARD.budgets||[]).map(b=>({...b,hunts:b.hunts.filter(x=>x!==id)})).filter(b=>b.hunts.length>1);}
+    if(bwith&&bmax!=null&&!(cur&&cur.hunts.includes(bwith))){let b=BOARD.budgets.find(b=>b.hunts.includes(bwith));if(!b){b={id:slug(id+"-"+bwith),name:"",max:bmax,hunts:[bwith]};BOARD.budgets.push(b);}b.max=bmax;if(!b.hunts.includes(id))b.hunts.push(id);if(data.priceMax==null||data.priceMax>bmax)data.priceMax=bmax;}
+    BOARD.hunts[id]=data;editing=null;sel=id;sortBy=null;try{localStorage.setItem("mhb.sel",id);}catch(e2){}
+    markDirty(id);render();
+  };
+}
+if(SHARE){const f=document.querySelector("footer");f.textContent="Web copy of Marijn's Hunt Board, updated after each daily 12:00 scan. Use Edit hunt to change what the scout looks for, then send the changes to Marijn. Tap a listing to see its photos and details on Marktplaats. Detours and drive times are road estimates (straight line × 1.3). Listings run in 28-day cycles unless the seller renews them.";document.querySelector(".sub").textContent="Updated every day after the 12:00 scan. Tap a card to open the listing, or use Edit hunt to change the search.";}
+render();
+</script>
+
+
+</body></html>
