@@ -102,7 +102,10 @@ header.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justif
 select.small{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.star{position:absolute;top:8px;right:8px;z-index:3;width:40px;height:40px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:22px;line-height:40px;text-align:center;cursor:pointer;padding:0}
+.star[aria-pressed="true"]{background:var(--new);color:#1b1b18}
+.card.fav{border-color:var(--new)}
 .card.isnew{border-color:var(--new);box-shadow:0 0 0 3px var(--new-soft)}
 .card.gone{opacity:.55}
 .card.flash{box-shadow:0 0 0 3px var(--accent)}
@@ -320,6 +323,25 @@ function serialize(){
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("hunt-board",1);r.onupgradeneeded=()=>r.result.createObjectStore("h");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 async function idbGet(){try{const db=await idb();return await new Promise(r=>{const q=db.transaction("h").objectStore("h").get("file");q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null);});}catch(e){return null;}}
 async function idbSet(h){try{const db=await idb();db.transaction("h","readwrite").objectStore("h").put(h,"file");}catch(e){}}
+/* ---------- favourites ----------
+   BOARD.favorites = {huntId: [dealId, …]}: shared stars, shown to everyone and kept on the board by the scout.
+   On the web copy a star is first saved in this browser (mhb.fav: {huntId: {dealId: true|false}}) and travels
+   to the board through "Send changes to Marijn"; on the laptop it goes straight into the file on Save. */
+let FAVLOCAL={};try{FAVLOCAL=JSON.parse(localStorage.getItem("mhb.fav")||"{}")||{};}catch(e){FAVLOCAL={};}
+function favBoard(hid,id){return ((BOARD.favorites||{})[hid]||[]).includes(id);}
+function isFav(hid,id){const o=(FAVLOCAL[hid]||{})[id];return o===undefined?favBoard(hid,id):o;}
+function favCount(hid){const R=BOARD.results[hid];return R&&R.deals?R.deals.filter(d=>isFav(hid,d.id)).length:0;}
+function favLocalChanges(){const out={};for(const hid in FAVLOCAL)for(const id in FAVLOCAL[hid]){const v=FAVLOCAL[hid][id];if(v===favBoard(hid,id))continue;(out[hid]=out[hid]||{add:[],remove:[]})[v?"add":"remove"].push(id);}return out;}
+function tidyFavLocal(){for(const hid in FAVLOCAL){for(const id in FAVLOCAL[hid])if(FAVLOCAL[hid][id]===favBoard(hid,id))delete FAVLOCAL[hid][id];if(!Object.keys(FAVLOCAL[hid]).length)delete FAVLOCAL[hid];}try{localStorage.setItem("mhb.fav",JSON.stringify(FAVLOCAL));}catch(e){}}
+function starBtn(hid,d){const on=isFav(hid,d.id);return `<button class="star" type="button" data-h="${esc(hid)}" data-id="${esc(d.id)}" aria-pressed="${on}" aria-label="${on?"Remove from favourites":"Add to favourites"}" title="${on?"Remove from favourites":"Add to favourites"}">${on?"★":"☆"}</button>`;}
+function toggleFav(hid,id){
+  const on=!isFav(hid,id);
+  if(SHARE){(FAVLOCAL[hid]=FAVLOCAL[hid]||{})[id]=on;tidyFavLocal();if(Object.keys(favLocalChanges()).length)markDirty();}
+  else{const f=BOARD.favorites=BOARD.favorites||{};const l=f[hid]=(f[hid]||[]).filter(x=>x!==id);if(on)l.push(id);if(!l.length)delete f[hid];markDirty();}
+  if(view==="fav")render();else{document.querySelectorAll(`.star[data-id="${CSS.escape(id)}"]`).forEach(b=>{b.setAttribute("aria-pressed",on);b.textContent=on?"★":"☆";b.title=b.ariaLabel=on?"Remove from favourites":"Add to favourites";b.closest(".card").classList.toggle("fav",on);});
+    const c=document.querySelector('.chip[data-v="fav"]');if(c)c.textContent=`★ Favourites (${favCount(hid)})`;}
+}
+document.addEventListener("click",e=>{const s=e.target.closest(".star");if(!s)return;e.preventDefault();toggleFav(s.dataset.h,s.dataset.id);});
 const changed=new Set();
 function markDirty(id){dirty=true;if(id)changed.add(id);document.getElementById("savebar").hidden=false;
   if(SHARE){document.getElementById("savemsg").textContent="Your changes are only on this screen so far. Send them to Marijn so the next scan uses them.";document.getElementById("savebtn").textContent="Send changes to Marijn";}
@@ -334,7 +356,8 @@ function changeBlock(){
     if(Object.keys(rd).length)d.route=rd;
     if(Object.keys(d).length)hunts[id]=d;});
   const budgets=(BOARD.budgets||[]).filter(b=>b.hunts.some(x=>changed.has(x)));
-  return "--- HUNT BOARD CHANGES ---\n"+JSON.stringify({v:2,hunts,budgets,touched:Object.keys(hunts)})+"\n--- END ---";}
+  const fav=favLocalChanges(), block={v:2,hunts,budgets,touched:Object.keys(hunts)};if(Object.keys(fav).length)block.favorites=fav;
+  return "--- HUNT BOARD CHANGES ---\n"+JSON.stringify(block)+"\n--- END ---";}
 function showSend(){
   const box=document.getElementById("sendbox");const txt=changeBlock();
   box.innerHTML=`<h2>Send your changes to Marijn</h2><ol><li>Copy the text below.</li><li>Open today's <b>Marktplaats finds</b> email and press <b>Reply</b>.</li><li>Paste it in and send. The next 12:00 scan picks it up and uses your new criteria.</li></ol>
@@ -477,7 +500,7 @@ function huntHTML(id){
       <div class="stat"><b>${(R.flags||[]).length}</b><span>risk flags</span></div>
     </div>
     <div class="toolbar" id="toolbar">
-      ${[["all","All"],["new","New today"],["earlier","Earlier finds"],["attention","Needs attention"]].map(([v,l])=>`<button class="chip" type="button" aria-pressed="${view===v}" data-v="${v}">${l}</button>`).join("")}
+      ${[["all","All"],["fav",`★ Favourites (${favCount(id)})`],["new","New today"],["earlier","Earlier finds"],["attention","Needs attention"]].map(([v,l])=>`<button class="chip" type="button" aria-pressed="${view===v}" data-v="${v}">${l}</button>`).join("")}
       <span class="spacer"></span><label class="sub" for="sort">Sort</label>
       <select class="small" id="sort">${sorts.map(([v,l])=>`<option value="${v}" ${v===sortBy?"selected":""}>${esc(l)}</option>`).join("")}</select>
     </div>
@@ -516,8 +539,8 @@ function sortList(list,R,h,by){
 }
 function cardsHTML(deals,R,h){
   const list=sortList(deals.filter(d=>{const f=life(d,R);
-    if(view==="new")return f.isNew&&f.st!=="gone";if(view==="earlier")return !f.isNew&&f.st!=="gone";if(view==="attention")return f.attention;return true;}),R,h,sortBy);
-  if(!list.length)return `<div class="note">${deals.length?"Nothing here for this filter.":"No matches yet. The scout keeps looking every day at 12:00."}</div>`;
+    if(view==="fav")return isFav(sel,d.id);if(view==="new")return f.isNew&&f.st!=="gone";if(view==="earlier")return !f.isNew&&f.st!=="gone";if(view==="attention")return f.attention;return true;}),R,h,sortBy);
+  if(!list.length)return `<div class="note">${view==="fav"?"No favourites here yet. Tap the ☆ on a listing to keep an eye on it.":deals.length?"Nothing here for this filter.":"No matches yet. The scout keeps looking every day at 12:00."}</div>`;
   return list.map(d=>card(d,R,h)).join("");
 }
 function logistics(d,R,h){
@@ -549,8 +572,8 @@ function card(d,R,h){
   const m=d.typical||R.market;
   const saving=d.saving!=null?`<span class="saving ${d.saving<0?"neg":""}">${d.saving>=0?`~${eur(d.saving)} under typical`:`~${eur(-d.saving)} over typical`}</span>`:"";
   const meta=[d.city?`📍 ${esc(d.city)}${km!=null?` · ${Math.round(km)} km`:""}`:"",d.condition?esc(d.condition):"",d.year?`from ${esc(d.year)}`:"",d.dims?esc(d.dims):""].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
-  return `<article class="card ${f.isNew&&f.st!=="gone"?"isnew":""} ${f.st==="gone"?"gone":""}" id="c-${esc(d.id)}">
-    <a class="photo" href="${esc(d.url)}" target="_blank" rel="noopener">${imgTag(d.image)}<span class="num-badge">#${d._n}</span><span class="badges">${b.join("")}</span></a>
+  return `<article class="card ${f.isNew&&f.st!=="gone"?"isnew":""} ${f.st==="gone"?"gone":""} ${isFav(sel,d.id)?"fav":""}" id="c-${esc(d.id)}">
+    ${starBtn(sel,d)}<a class="photo" href="${esc(d.url)}" target="_blank" rel="noopener">${imgTag(d.image)}<span class="num-badge">#${d._n}</span><span class="badges">${b.join("")}</span></a>
     <div class="cbody">
       ${d.fit!=null?`<span class="fit" title="How well it matches your wishes">match<span class="fitbar"><i style="width:${Math.max(0,Math.min(100,d.fit))}%"></i></span>${Math.round(d.fit)}/100</span>`:""}
       <a class="title" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.title)}</a>
@@ -693,9 +716,9 @@ if(SHARE){const f=document.querySelector("footer");f.textContent="Web copy of Ma
 if(window.SHARE_DATA_URL){
   document.getElementById("main").innerHTML=`<div class="empty"><div class="sub">Loading today's board…</div></div>`;
   fetch(window.SHARE_DATA_URL+"?v="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
-    .then(d=>{BOARD=d;ORIG=JSON.parse(JSON.stringify(BOARD.hunts));render();})
+    .then(d=>{BOARD=d;ORIG=JSON.parse(JSON.stringify(BOARD.hunts));tidyFavLocal();render();})
     .catch(()=>{document.getElementById("main").innerHTML=`<div class="empty"><h2>Couldn't load the board</h2><div class="sub">Check your connection and refresh the page.</div></div>`;});
-}else render();
+}else{if(SHARE)tidyFavLocal();render();}
 </script>
 
 
